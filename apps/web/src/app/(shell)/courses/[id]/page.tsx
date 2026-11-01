@@ -57,14 +57,9 @@ export default async function CoursePage({ params }: { params: { id: string } })
         </div>
         <div className="head__actions">
           {isOwner ? <NewCourseware courseId={course.id} /> : null}
-          {user.role === 'STUDENT' && !course.enrolled ? (
-            course.classId ? (
-              <Link className="ln-btn ln-btn--outline ln-btn--sm" href="/classes">
-                用班级码加入
-              </Link>
-            ) : (
-              <EnrollButton courseId={course.id} />
-            )
+          {/* 学生端不放「用班级码加入」：入班由教师发码或邀请完成，学生页只保留阅读与讨论 */}
+          {user.role === 'STUDENT' && !course.enrolled && !course.classId ? (
+            <EnrollButton courseId={course.id} />
           ) : null}
           <Link className="ln-btn ln-btn--outline ln-btn--sm" href={`/forum?courseId=${course.id}`}>
             课程讨论
@@ -99,16 +94,10 @@ export default async function CoursePage({ params }: { params: { id: string } })
         <div className="notice notice--accent" style={{ marginBottom: 24 }}>
           <span>
             {course.classId
-              ? `这门课属于「${course.className ?? '教学班'}」。回「班级」页输入老师给的班级码，或在邀请链接里加入，课程与作业会自动挂到你的账号下。`
+              ? `这门课属于「${course.className ?? '教学班'}」，不在你所在的班级里。如需加入，请向任课教师索取班级码或邀请链接。`
               : '这门课你还没有选修。选修后可阅读全部已发布课件，并把课件纳入自己的笔记库。'}
           </span>
-          {course.classId ? (
-            <Link className="ln-btn ln-btn--outline ln-btn--sm" href="/classes">
-              去加入班级
-            </Link>
-          ) : (
-            <EnrollButton courseId={course.id} />
-          )}
+          {course.classId ? null : <EnrollButton courseId={course.id} />}
         </div>
       ) : null}
 

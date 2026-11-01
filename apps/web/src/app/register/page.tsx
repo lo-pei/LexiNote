@@ -44,7 +44,7 @@ export default async function RegisterPage({
             next={next}
           />
           <p className="gate__legal" style={{ width: '100%' }}>
-            注册即表示你已阅读<Link href="/privacy">隐私政策</Link>与<Link href="/terms">使用说明</Link>：
+            注册即表示你已阅读<Link href="/privacy">隐私政策</Link>与<Link href="/terms">使用条款</Link>：
             数据只存在本课程的部署机上，用于教学；请为这里单独设一个密码。
           </p>
         </div>

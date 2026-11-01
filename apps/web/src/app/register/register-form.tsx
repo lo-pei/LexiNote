@@ -72,7 +72,10 @@ export function RegisterForm({
       <div>
         <h1 className="gate__title">建一个属于你的读本</h1>
         <p className="gate__hint" style={{ marginTop: 8 }}>
-          学号即账号，注册后无需邮箱验证。已有账号？<Link href="/login">直接登录</Link>
+          学号即账号，注册后无需邮箱验证。已有账号？
+          <Link className="gate__hint-link" href="/login">
+            直接登录
+          </Link>
         </p>
       </div>
 
@@ -98,7 +101,7 @@ export function RegisterForm({
             className="ln-input"
             value={loginNo}
             onChange={(event) => setLoginNo(event.target.value.replace(/\s/g, ''))}
-            placeholder="20230101"
+            placeholder="26320001"
             autoComplete="username"
             autoCapitalize="off"
             spellCheck={false}
@@ -156,7 +159,7 @@ export function RegisterForm({
             className="ln-input"
             value={classCode}
             onChange={(event) => setClassCode(event.target.value.toUpperCase())}
-            placeholder="老师给的 6 位班级码，例如 LAW103"
+            placeholder="老师给的 6 位班级码，例如 LAW26A"
             autoCapitalize="characters"
             spellCheck={false}
           />

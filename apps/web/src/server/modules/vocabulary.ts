@@ -369,6 +369,20 @@ export function removeItem(itemId: string, user: SessionUser): void {
   db.run(`DELETE FROM wordbook_items WHERE id = ?`, itemId);
 }
 
+/**
+ * 删除整本词表（连带词条）。
+ * 内置词库是只读的共享资源，不让人删；自定义词表随便删，删完可以再建。
+ */
+export function deleteWordbook(wordbookId: string, user: SessionUser): void {
+  const book = ownBook(wordbookId, user);
+  if (book.kind === 'GLOSSARY') {
+    throw forbidden('内置词库不可删除。可以在其中移除词条。');
+  }
+  const db = getDb();
+  db.run(`DELETE FROM wordbook_items WHERE wordbook_id = ?`, book.id);
+  db.run(`DELETE FROM wordbooks WHERE id = ?`, book.id);
+}
+
 /** 导出统一 DTO（说明书 §5.8）：三个渲染器只消费这一份数据 */
 export function buildExportDTO(wordbookId: string, user: SessionUser): WordbookExportDTO {
   const book = ownBook(wordbookId, user);

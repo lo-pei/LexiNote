@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { EditorShell } from '@ln/editor';
+import { collectHeadings } from '@ln/utils';
 import type { TiptapDoc, TiptapNode } from '@ln/types';
 
 /**
@@ -14,6 +15,10 @@ import type { TiptapDoc, TiptapNode } from '@ln/types';
  *
  * 切分完全依据脚本测出的版面高度（而不是字数估算），
  * 排版或字号变化后重新测量即可，不需要手工调分页参数。
+ *
+ * 左侧目录按正文章节标题列出，讲课时学生一眼看清结构与讲到哪儿；
+ * 目录占去一栏宽度，正文可用宽度随之变窄，所以要一并重新measure，
+ * 否则分屏仍按全宽算，会出现一屏装不下的情况。
  */
 
 interface Slice {
@@ -42,14 +47,20 @@ export function PresentView({
   const [index, setIndex] = useState(Math.max(0, initial));
   const [chrome, setChrome] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
+  const [tocOpen, setTocOpen] = useState(true);
 
   const stageRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
   const meterRef = useRef<HTMLDivElement>(null);
   const lockRef = useRef(0);
   const wheelAccRef = useRef(0);
   const wheelAtRef = useRef(0);
   const idleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* ── 目录 ───────────────────────────────────────────── */
+
+  const toc = useMemo(() => collectHeadings(content), [content]);
 
   /* ── 测量与切分 ─────────────────────────────────────── */
 
@@ -118,6 +129,8 @@ export function PresentView({
     void document.fonts?.ready.then(() => measure());
     const observer = new ResizeObserver(() => measure());
     if (stageRef.current) observer.observe(stageRef.current);
+    // 目录开合只改正文宽度、不改外层尺寸，所以要盯着正文本身
+    if (pageRef.current) observer.observe(pageRef.current);
     window.addEventListener('resize', measure);
     return () => {
       observer.disconnect();
@@ -133,6 +146,26 @@ export function PresentView({
     },
     [slices.length],
   );
+
+  /** 标题落在第几屏：点目录就是直接翻到那一屏 */
+  const sliceOfBlock = useCallback(
+    (block: number) => {
+      const found = slices.findIndex((item) => block >= item.start && block <= item.end);
+      return found >= 0 ? found : 0;
+    },
+    [slices],
+  );
+
+  /** 当前高亮哪一条：最后一个「不晚于当前屏」的标题 */
+  const activeToc = useMemo(() => {
+    let active = -1;
+    toc.forEach((item, i) => {
+      if (sliceOfBlock(item.block) <= index) active = i;
+    });
+    return active;
+  }, [toc, index, sliceOfBlock]);
+
+  const showToc = tocOpen && toc.length > 0;
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -187,6 +220,9 @@ export function PresentView({
       } else if (event.key === 'f' || event.key === 'F') {
         event.preventDefault();
         void toggleFullscreen();
+      } else if (event.key === 't' || event.key === 'T') {
+        event.preventDefault();
+        setTocOpen((open) => !open);
       } else if (event.key === 'Escape') {
         if (document.fullscreenElement) void document.exitFullscreen();
         else window.location.href = `/docs/${id}`;
@@ -218,11 +254,16 @@ export function PresentView({
   const total = slices.length || 1;
 
   return (
-    <div className={`present${chrome ? ' present--awake' : ''}`} onMouseMove={wake} onTouchStart={wake}>
+    <div
+      className={`present${chrome ? ' present--awake' : ''}${showToc ? ' present--toc' : ''}`}
+      onMouseMove={wake}
+      onTouchStart={wake}
+    >
       <div className="present__stage" ref={stageRef}>
         <div className="present__sheet" ref={sheetRef}>
           <div
             className="present__page"
+            ref={pageRef}
             style={slice && slice.zoom < 1 ? { zoom: slice.zoom, width: `${100 / slice.zoom}%` } : undefined}
           >
             {/* Tiptap 实例只在挂载时取一次 content，换屏必须换 key 才会重挂 */}
@@ -245,6 +286,32 @@ export function PresentView({
         </div>
       </div>
 
+      {/* 左侧目录：讲课时把讲授结构摆在学生眼前，点标题直接翻到那一屏 */}
+      {toc.length ? (
+        <aside className={`present__toc${showToc ? ' is-open' : ''}`} aria-label="目录" aria-hidden={!showToc}>
+          <div className="present__toc-head">
+            <span className="present__toc-label">目录</span>
+            <span className="present__toc-count tnum">
+              {index + 1} / {total}
+            </span>
+          </div>
+          <ol className="present__toc-list">
+            {toc.map((item, i) => (
+              <li
+                key={`${item.block}-${item.text}`}
+                data-level={item.level}
+                data-on={i === activeToc ? 'true' : 'false'}
+              >
+                <button type="button" onClick={() => setIndex(sliceOfBlock(item.block))} tabIndex={showToc ? 0 : -1}>
+                  <span className="present__toc-no tnum">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="present__toc-text">{item.text}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </aside>
+      ) : null}
+
       <div className="present__chrome">
         <div className="present__bar">
           <Link className="present__exit" href={`/docs/${id}`}>
@@ -254,6 +321,16 @@ export function PresentView({
           <span className="present__count tnum">
             {index + 1} / {total}
           </span>
+          {toc.length ? (
+            <button
+              type="button"
+              className="present__nav present__nav--ghost"
+              onClick={() => setTocOpen((open) => !open)}
+              aria-pressed={tocOpen}
+            >
+              {tocOpen ? '收起目录' : '目录'}
+            </button>
+          ) : null}
           <button type="button" className="present__nav present__nav--ghost" onClick={() => void toggleFullscreen()}>
             {fullscreen ? '退出全屏' : '全屏'}
           </button>

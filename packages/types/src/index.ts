@@ -301,7 +301,8 @@ export interface StudentMetric {
   wordsAdded: number;
   forumReplies: number;
   translationHitRate: number;
-  lastActiveAt: string | null;
+  /** 已停用：不再采集个人最近活跃时间，避免过度收集行为数据 */
+  lastActiveAt?: string | null;
 }
 
 export interface TermHeat {

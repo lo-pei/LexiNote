@@ -87,7 +87,6 @@ for (const u of users) {
 }
 
 const teacherId = userId.get('T202601')!;
-const teacher2Id = userId.get('T202602')!;
 const studentIds = users.filter((u) => u.role === 'STUDENT').map((u) => userId.get(u.loginNo)!);
 
 /* ── 班级 ───────────────────────────────────────────────── */
@@ -119,8 +118,9 @@ for (const [index, c] of classSeed.entries()) {
       memberId,
       member.loginNo,
       member.name,
-      order < 3 ? 'CODE' : 'INVITE',
-      iso(58 - order * 2, 10),
+      order < 5 ? 'CODE' : 'INVITE',
+      // 60 人一个班：加入时间按序号铺在开学后两周内，不会出现未来时间
+      iso(58 - Math.floor(order / 5), 10),
     );
   }
 
@@ -140,32 +140,29 @@ for (const [index, c] of classSeed.entries()) {
 
 /* ── 课程与选课 ─────────────────────────────────────────── */
 
+/* ── 课程 ───────────────────────────────────────────────────
+   只有两门，都是「法律英语」，各挂一个教学班：
+   法学班课程代码 3.403.034.3、非法学班 3.503.014.2。
+   课号写进 term 一栏，课程卡片按「学期 · 课程代码」显示。 */
+
 const courses = [
   {
     id: uid('crs'),
     teacherId,
     classId: classIds[0]!,
-    title: '法律英语精读 · 合同法',
+    title: '法律英语',
     description:
-      '以英国合同法经典判例为读本，逐句精读 offer、acceptance、consideration 三段结构；每讲配一份可标注的课件与一套预置译文。',
-    term: '2026 秋季学期 · LAW 2103',
+      '以英美法与比较法专题为读本，逐讲精读司法审查、宪法解释、冲突法与管辖等主题的原判例；每讲配一份可标注的课件与一套预置译文。',
+    term: '2026 秋季学期 · 3.403.034.3',
   },
   {
     id: uid('crs'),
     teacherId,
     classId: classIds[1]!,
-    title: '英美判例阅读 · 侵权与责任',
+    title: '法律英语',
     description:
-      '从 Donoghue v Stevenson 到 Caparo，训练读判决书的四步法：事实、争点、判决、理由。',
-    term: '2026 秋季学期 · LAW 3211',
-  },
-  {
-    id: uid('crs'),
-    teacherId: teacher2Id,
-    classId: classIds[2]!,
-    title: '法律翻译工作坊',
-    description: '以真实合同与判决书为材料的中英互译训练，重点处理术语一致性与句法重组。',
-    term: '2026 秋季学期 · LAW 4402',
+      '与法学班同一套专题与案例，讲解节奏按非法学背景调整，增加术语与制度背景的铺垫；每讲配一份可标注的课件与一套预置译文。',
+    term: '2026 秋季学期 · 3.503.014.2',
   },
 ];
 
@@ -185,50 +182,54 @@ for (const c of courses) {
 }
 
 for (const [courseIdx, list] of enrollmentPlan.entries()) {
-  for (const idx of list) {
+  for (const [order, idx] of list.entries()) {
     run(
       `INSERT INTO enrollments (id, student_id, course_id, created_at) VALUES (?, ?, ?, ?)`,
       uid('enr'),
       studentIds[idx]!,
       courses[courseIdx]!.id,
-      iso(60 - idx, 11),
+      iso(60 + Math.floor(order / 10), 11),
     );
   }
 }
 
-/* ── 课件 ───────────────────────────────────────────────── */
+/* ── 课件 ───────────────────────────────────────────────────
+   两个教学班用同一套读本：每门课各挂一份同样的三份课件，
+   学生打开自己班的课件，标注与笔记互不相通。 */
 
 const docIds: Record<string, string> = {};
-for (const [index, item] of courseware.entries()) {
-  const id = uid('doc');
-  docIds[item.slug] = id;
-  const courseId = index < 2 ? courses[0]!.id : courses[1]!.id;
-  run(
-    `INSERT INTO documents (id, owner_id, course_id, parent_doc_id, title, subtitle, content, status, kind, sort_order, created_at, updated_at)
-     VALUES (?, ?, ?, NULL, ?, ?, ?, 'PUBLISHED', 'COURSEWARE', ?, ?, ?)`,
-    id,
-    teacherId,
-    courseId,
-    item.title,
-    item.subtitle,
-    JSON.stringify(item.content),
-    index,
-    iso(40 - index * 6, 9),
-    iso(2 + index, 16),
-  );
-
-  for (const [sortOrder, entry] of (sidebarItems[item.slug] ?? []).entries()) {
+for (const [courseIdx, course] of courses.entries()) {
+  for (const [index, item] of courseware.entries()) {
+    const id = uid('doc');
+    // 只有第一个班的课件 id 被下游引用（示例笔记、生词出处）
+    if (courseIdx === 0) docIds[item.slug] = id;
     run(
-      `INSERT INTO sidebar_items (id, doc_id, type, title, content, level, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      uid('sbi'),
+      `INSERT INTO documents (id, owner_id, course_id, parent_doc_id, title, subtitle, content, status, kind, sort_order, created_at, updated_at)
+       VALUES (?, ?, ?, NULL, ?, ?, ?, 'PUBLISHED', 'COURSEWARE', ?, ?, ?)`,
       id,
-      entry.type,
-      entry.title,
-      JSON.stringify({ type: 'doc', content: entry.content }),
-      entry.level,
-      sortOrder,
+      teacherId,
+      course.id,
+      item.title,
+      item.subtitle,
+      JSON.stringify(item.content),
+      index,
+      iso(40 - index * 6, 9),
+      iso(2 + index, 16),
     );
+
+    for (const [sortOrder, entry] of (sidebarItems[item.slug] ?? []).entries()) {
+      run(
+        `INSERT INTO sidebar_items (id, doc_id, type, title, content, level, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        uid('sbi'),
+        id,
+        entry.type,
+        entry.title,
+        JSON.stringify({ type: 'doc', content: entry.content }),
+        entry.level,
+        sortOrder,
+      );
+    }
   }
 }
 
@@ -532,5 +533,5 @@ console.log('LexiNote 数据已重建 →', DB_PATH);
 console.log(counts);
 console.log(`翻译模板 ${counts.templates} 条；课件句子未命中模板 ${unmatched.length} 条：`);
 for (const u of unmatched) console.log('  ·', u);
-console.log('演示口令统一为 lexinote；账号即学号（教师为工号），如 20230101 / T202601');
-console.log('班级码：LAW103 / LAW211 / LAW402；邀请链接：/join/demo-contract-2103');
+console.log('演示口令统一为 lexinote；账号即学号（教师为工号），如 26320001 / T202601');
+console.log('班级码：LAW26A（法学）/ LAW26B（非法学）；邀请链接：/join/demo-law-2602');

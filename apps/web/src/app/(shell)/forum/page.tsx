@@ -31,9 +31,6 @@ export default async function ForumPage({
       <header className="head">
         <div>
           <h1 className="head__title">讨论区</h1>
-          <p className="head__sub">
-            提问、作业与批注都在这里流转。回复会同时计入你的学情记录，教师的批注会贴着你的原文出现。
-          </p>
         </div>
         <div className="head__actions">
           {options.length ? <NewTopic courses={options} isTeacher={user.role === 'TEACHER'} /> : null}

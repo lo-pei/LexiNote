@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LexiNote · 进入登录页</title>
+<!--
+  本文件只做一件事：把打开它的人送进登录页。
+
+  为什么用 127.0.0.1 而不是 localhost：
+    本机开着系统代理（Windows「设置 → 网络和 Internet → 代理」里那一条），
+    且没有配置例外地址。浏览器会把「localhost:3100」也交给代理去转，
+    代理不认识这个本地主机名，直接回 502，页面就是打不开。
+    「127.0.0.1:3100」是明确的 IP，代理客户端按本地地址放行，
+    所以同一个服务用 IP 能开、用 localhost 打不开。入口一律写 IP。
+
+  两种打开方式都照顾到：
+  1) 双击文件（file://）—— 相对路径无效，只能走绝对地址，端口默认 3100，
+     可用 index.html?port=3101 覆盖。
+  2) 由服务托管（http://.../index.html）—— 走同源相对路径 /login，
+     换端口、换域名都不用改这个文件。
+
+  这里不做「先探测服务是否在跑」：从 file:// 发出的 fetch 常被浏览器按跨源
+  策略拦掉，会把「服务正常」误判成「没启动」。直接跳是最不容易出错的做法；
+  万一跳不过去，页面上把原因和两种解法都写清楚了。
+-->
+<style>
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    display: grid;
+    place-items: center;
+    background: #fbfbf8;
+    color: #54564e;
+    font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { width: min(470px, calc(100vw - 48px)); }
+  .head { text-align: center; }
+  .mark {
+    font-family: "Newsreader", Georgia, "Songti SC", "SimSun", serif;
+    font-size: 27px;
+    letter-spacing: .01em;
+    color: #1a1b17;
+    margin: 0 0 3px;
+  }
+  .mark span { color: #a8291f; }
+  .sub {
+    margin: 0 0 26px;
+    font-size: 11.5px;
+    color: #9a9c92;
+    letter-spacing: .1em;
+  }
+  .msg { margin: 0 0 14px; text-align: center; color: #6f7169; }
+  a.go {
+    display: block;
+    width: fit-content;
+    margin: 0 auto;
+    padding: 11px 30px;
+    border-radius: 3px;
+    background: #a8291f;
+    color: #fbfbf8;
+    text-decoration: none;
+    font-weight: 600;
+    letter-spacing: .03em;
+    transition: background 140ms ease;
+  }
+  a.go:hover { background: #7c1c14; }
+  .url {
+    display: block;
+    margin: 12px 0 0;
+    text-align: center;
+    font-size: 11.5px;
+    color: #9a9c92;
+  }
+  .hint {
+    margin: 26px 0 0;
+    padding-top: 18px;
+    border-top: 1px solid #e2e3dc;
+    font-size: 12px;
+    color: #6f7169;
+    text-align: left;
+  }
+  .hint p { margin: 0 0 10px; }
+  .hint p:last-child { margin-bottom: 0; }
+  .hint b { color: #1a1b17; font-weight: 600; }
+  code {
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 11.5px;
+    background: #f4f4ef;
+    border: 1px solid #e2e3dc;
+    border-radius: 2px;
+    padding: 1px 5px;
+    color: #1a1b17;
+  }
+</style>
+<script>
+  // 先把真实目标算出来：file:// 下用绝对地址，托管时用同源相对路径。
+  (function () {
+    var fromFile = location.protocol === 'file:';
+    var port = new URLSearchParams(location.search).get('port') || '3100';
+    var target = fromFile ? 'http://127.0.0.1:' + port + '/login' : '/login';
+
+    document.addEventListener('DOMContentLoaded', function () {
+      var link = document.getElementById('go');
+      var url = document.getElementById('url');
+      link.href = target;
+      url.textContent = target;
+      setTimeout(function () { location.replace(target); }, 80);
+    });
+  })();
+</script>
+</head>
+<body>
+<main>
+  <div class="head">
+    <p class="mark">Lexi<span>Note</span></p>
+    <p class="sub">法律英语精读 · 案例笔记</p>
+  </div>
+
+  <p class="msg">正在进入登录页……</p>
+  <a class="go" id="go" href="#">进入登录页 →</a>
+  <span class="url" id="url"></span>
+
+  <div class="hint">
+    <p>
+      <b>没有自动跳转？</b>先点上面的按钮。仍打不开就是本地服务没启动——
+      双击项目根目录的 <b>打开平台.cmd</b>，它会先起服务再打开登录页；
+      也可以在项目目录执行 <code>npm run dev --workspace @ln/web</code>，
+      等控制台出现 <code>Ready</code> 后刷新本页。
+    </p>
+    <p>
+      <b>提示「502」或「无法连接到代理」？</b>是本机系统代理把
+      <code>localhost</code> 也转走了。本入口已经改用
+      <code>127.0.0.1</code> 绕开；若手动在地址栏输入，请同样使用
+      <code>http://127.0.0.1:3100/login</code>，不要用 <code>localhost</code>。
+    </p>
+  </div>
+</main>
+</body>
+</html>

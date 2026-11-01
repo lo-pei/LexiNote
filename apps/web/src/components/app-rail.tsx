@@ -22,6 +22,8 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
       { href: '/library', label: '我的文档', match: (p) => p.startsWith('/library') || p.startsWith('/docs') },
       { href: '/wordbooks', label: '生词本', match: (p) => p.startsWith('/wordbooks') },
       { href: '/forum', label: '讨论区', match: (p) => p.startsWith('/forum') },
+      // 推荐阅读排在导航末位
+      { href: '/readings', label: '推荐阅读', match: (p) => p.startsWith('/readings') },
     ],
   },
   {
@@ -115,9 +117,14 @@ export function AppRail({ user }: { user: SessionUser }) {
             </span>
           </span>
         </div>
-        <button type="button" className="ln-btn ln-btn--quiet ln-btn--sm" onClick={signOut} disabled={busy}>
+        <button type="button" className="rail__signout" onClick={signOut} disabled={busy}>
           {busy ? '正在退出…' : '退出登录'}
         </button>
+        <p className="rail__legal">
+          <Link href="/privacy">隐私政策</Link>
+          <span aria-hidden="true">·</span>
+          <Link href="/terms">使用条款</Link>
+        </p>
       </div>
     </aside>
   );

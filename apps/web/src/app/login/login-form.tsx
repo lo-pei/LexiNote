@@ -7,6 +7,13 @@ import { api, errorMessage } from '@/lib/client';
 
 const LAST_ACCOUNT_KEY = 'ln:lastAccount';
 
+/** 演示账号：与种子数据一致（npm run db:reset 会重建这两个号） */
+const DEMO_PASSWORD = 'lexinote';
+const DEMO_ACCOUNTS = [
+  { account: '26320001', label: '学生', name: '林知远' },
+  { account: 'T202601', label: '教师', name: '王红燕' },
+];
+
 export function LoginForm({ next, presetAccount }: { next: string | null; presetAccount: string }) {
   const router = useRouter();
   const [account, setAccount] = useState(presetAccount);
@@ -24,14 +31,18 @@ export function LoginForm({ next, presetAccount }: { next: string | null; preset
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    await login(account, password);
+  };
+
+  const login = async (accountNo: string, pass: string) => {
     setBusy(true);
     setError(null);
     try {
       await api('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ account: account.trim(), password, remember }),
+        body: JSON.stringify({ account: accountNo.trim(), password: pass, remember }),
       });
-      window.localStorage.setItem(LAST_ACCOUNT_KEY, account.trim());
+      window.localStorage.setItem(LAST_ACCOUNT_KEY, accountNo.trim());
       router.replace(next ?? '/');
       router.refresh();
     } catch (cause) {
@@ -40,11 +51,17 @@ export function LoginForm({ next, presetAccount }: { next: string | null; preset
     }
   };
 
+  /** 快捷登录：填好演示账号与口令，随即提交 */
+  const quick = (accountNo: string) => {
+    setAccount(accountNo);
+    setPassword(DEMO_PASSWORD);
+    void login(accountNo, DEMO_PASSWORD);
+  };
+
   return (
     <form className="gate__form" onSubmit={submit}>
       <div>
         <h1 className="gate__title">回到你的读本</h1>
-        <p className="gate__hint gate__hint--line">学号就是账号。课件、笔记、生词与讨论都留在你自己的账户里。</p>
       </div>
 
       <div className="ln-field">
@@ -61,7 +78,7 @@ export function LoginForm({ next, presetAccount }: { next: string | null; preset
           spellCheck={false}
           value={account}
           onChange={(event) => setAccount(event.target.value)}
-          placeholder="例如 20230101"
+          placeholder="例如 26320001"
           required
         />
       </div>
@@ -88,10 +105,7 @@ export function LoginForm({ next, presetAccount }: { next: string | null; preset
           checked={remember}
           onChange={(event) => setRemember(event.target.checked)}
         />
-        <span>
-          在这台设备上保持登录 30 天
-          <em>公用电脑请取消勾选，关闭浏览器即退出。</em>
-        </span>
+        <span>在这台设备上保持登录 30 天</span>
       </label>
 
       {error ? (
@@ -106,6 +120,29 @@ export function LoginForm({ next, presetAccount }: { next: string | null; preset
 
       <div className="gate__switch">
         还没有账号？<Link href={`/register${next ? `?next=${encodeURIComponent(next)}` : ''}`}>用学号注册</Link>
+      </div>
+
+      {/* 演示入口：只填演示库里的两个种子号，点一下直接登录 */}
+      <div className="gate__quick">
+        <span className="gate__quick-label">快捷登录（演示账号）</span>
+        <div className="gate__quick-row">
+          {DEMO_ACCOUNTS.map((item) => (
+            <button
+              key={item.account}
+              type="button"
+              className="gate__quick-btn"
+              onClick={() => quick(item.account)}
+              disabled={busy}
+              title={`${item.name} · ${item.account} · 口令 ${DEMO_PASSWORD}`}
+            >
+              <b>{item.label}</b>
+              <span>{item.account}</span>
+            </button>
+          ))}
+        </div>
+        <span className="gate__quick-note">
+          演示库口令统一为 <code>{DEMO_PASSWORD}</code>；正式使用请用学号自行注册。
+        </span>
       </div>
     </form>
   );

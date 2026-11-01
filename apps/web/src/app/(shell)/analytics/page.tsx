@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import type { AnalyticsOverview } from '@ln/types';
-import { formatDate } from '@ln/utils';
 import { requirePageUser } from '@/lib/session';
 import { listCourses } from '@/server/modules/courses';
-import { overview, teacherCourses } from '@/server/modules/analytics';
+import { overview, teacherCourses, type TeachingCourseOption } from '@/server/modules/analytics';
 
 export const dynamic = 'force-dynamic';
+export const metadata = { title: '学情 · LexiNote' };
 
 function Bars({ rows, accent }: { rows: { label: string; value: number; suffix?: string }[]; accent?: boolean }) {
   const max = Math.max(1, ...rows.map((row) => row.value));
@@ -33,20 +33,20 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: { 
   if (user.role === 'STUDENT') {
     return (
       <div className="wrap">
-        <header className="head">
-          <div>
-            <h1 className="head__title">学情</h1>
-            <p className="head__sub">学情面板面向教师开放。你的阅读与标注记录会汇总给任课教师。</p>
-          </div>
-        </header>
         <div className="empty">如果你是教师，请用教师账号登录查看课程学情。</div>
       </div>
     );
   }
 
-  const courses =
+  const courses: TeachingCourseOption[] =
     user.role === 'ADMIN'
-      ? listCourses(user).map((course) => ({ id: course.id, title: course.title }))
+      ? listCourses(user).map((course) => ({
+          id: course.id,
+          title: course.title,
+          className: course.className,
+          classDescription: null,
+          studentCount: course.studentCount,
+        }))
       : teacherCourses(user);
 
   const active = courses.find((course) => course.id === searchParams.course) ?? courses[0];
@@ -64,27 +64,25 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: { 
 
   return (
     <div className="wrap">
-      <header className="head">
-        <div>
-          <h1 className="head__title">学情</h1>
-          <p className="head__sub">
-            数据来自聚合表，按日累计；术语热度取自学习事件，用于定位下一次课的讲解重点。
-          </p>
-        </div>
-      </header>
-
       {courses.length ? (
-        <nav className="wb-tabs" aria-label="课程">
-          {courses.map((course) => (
-            <Link
-              key={course.id}
-              href={`/analytics?course=${course.id}`}
-              className={`chip${active?.id === course.id ? ' chip--active' : ''}`}
-              scroll={false}
-            >
-              {course.title}
-            </Link>
-          ))}
+        <nav className="classbar" aria-label="教学班">
+          {courses.map((course) => {
+            const selected = active?.id === course.id;
+            return (
+              <Link
+                key={course.id}
+                href={`/analytics?course=${course.id}`}
+                className={`classbar__btn${selected ? ' classbar__btn--active' : ''}`}
+                scroll={false}
+              >
+                <span className="classbar__name">{course.className ?? course.title}</span>
+                <span className="classbar__course">{course.title}</span>
+                {course.classDescription ? (
+                  <span className="classbar__time">{course.classDescription}</span>
+                ) : null}
+              </Link>
+            );
+          })}
         </nav>
       ) : (
         <div className="empty">还没有课程。先创建一门课程并发布课件，学情会随之产生。</div>
@@ -115,43 +113,40 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: { 
             </div>
           </div>
 
-          <section className="section">
+          <section className="section section--detail">
             <div className="section__head">
               <h2 className="section__title">学生明细</h2>
-              <span className="section__hint">按阅读活跃度排序</span>
+              <span className="section__hint">按学号排列 · 共 {data.students.length} 人</span>
             </div>
             <div className="card card--flush" style={{ overflowX: 'auto' }}>
-              <table className="ln-table">
+              <table className="ln-table ln-table--roster">
                 <thead>
                   <tr>
-                    <th>学生</th>
+                    <th>学号</th>
+                    <th>姓名</th>
                     <th className="num">笔记保存</th>
                     <th className="num">术语点击</th>
                     <th className="num">收录词</th>
                     <th className="num">讨论回复</th>
                     <th className="num">译文命中</th>
-                    <th>最近活跃</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.students.map((student) => (
                     <tr key={student.studentId}>
-                      <td>
-                        <div style={{ fontWeight: 500 }}>{student.name}</div>
-                        <div className="ln-hint">学号 {student.studentNo}</div>
-                      </td>
+                      <td className="ln-table__no">{student.studentNo}</td>
+                      <td>{student.name}</td>
                       <td className="num">{student.noteSaves}</td>
                       <td className="num">{student.termClicks}</td>
                       <td className="num">{student.wordsAdded}</td>
                       <td className="num">{student.forumReplies}</td>
                       <td className="num">{student.translationHitRate}%</td>
-                      <td className="muted">{formatDate(student.lastActiveAt)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <p className="ln-hint" style={{ marginTop: 10 }}>
+            <p className="ln-hint" style={{ marginTop: 12 }}>
               样本说明：译文命中率 = 命中预置译文的查表次数 ÷ 总查表次数，反映课件句子与译文库的覆盖度，不衡量学生水平。
             </p>
           </section>

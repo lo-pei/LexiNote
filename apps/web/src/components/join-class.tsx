@@ -47,7 +47,7 @@ export function JoinClass({ defaultCode = '' }: { defaultCode?: string }) {
           className="ln-input joinbox__input"
           value={code}
           onChange={(event) => setCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8))}
-          placeholder="LAW103"
+          placeholder="LAW26A"
           aria-label="班级码"
           autoCapitalize="characters"
           spellCheck={false}

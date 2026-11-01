@@ -2,7 +2,7 @@
 rem ==========================================================================
 rem  LexiNote launcher
 rem  Double-click this file: it starts the local dev server (if it is not
-rem  already running) and opens 入口.html in your default browser.
+rem  already running) and opens the login page in your default browser.
 rem
 rem  Keep this file ASCII-only. cmd.exe parses .cmd as ANSI; UTF-8 Chinese
 rem  text here would be garbled on a GBK console.

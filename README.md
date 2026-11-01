@@ -108,7 +108,7 @@ LexiNote 做的事只有一件：**让同一份法律英语课件，在课堂投
 | **讨论与批注** | 提问与作业分开建帖；教师可在回复上写批注、打分、标记参考答案；回复计入学习记录与学情活跃度 |
 | **学情** | 选课人数、课件数、译文命中率、未掌握词数、学生明细、术语热度；未掌握词只统计自建词表，不被内置词库稀释 |
 | **课程安排** | 本学期专题与配套案例（含案号出处）、上课周次、课程代码；右侧推荐阅读栏收录 10 种教材，可按书名 / 作者 / 出版社 / **ISBN（可省连字符）** 检索 |
-| **隐私与说明** | `/privacy` 与 `/terms` 为公开路由（不登录可读）；登录页页脚与每页右下角均有入口；登录后 `/help` 是完整七节手册 |
+| **隐私政策与使用条款** | `/privacy` 与 `/terms` 为公开路由（不登录可读），正文按「汉字序号 + 1.1 式条款」分条撰写，左侧点状目录随滚动高亮、右下角回到顶部；登录页页面底栏与每页右下角均有入口；登录后 `/help` 是完整七节操作手册 |
 | **导出** | 同一份 `WordbookExportDTO` 喂三个渲染器：exceljs（xlsx）、docx（Word）、打印样式（PDF） |
 
 ---
@@ -119,10 +119,15 @@ LexiNote 做的事只有一件：**让同一份法律英语课件，在课堂投
 # 需要 Node >= 22.5（依赖内置 node:sqlite，无需原生编译）
 npm install
 npm run db:seed     # 重建 SQLite 并灌入演示数据（会清空旧库）
-npm run dev         # http://localhost:3100
+npm run dev         # http://127.0.0.1:3100
 ```
 
-Windows 上也可以双击 **`打开平台.cmd`**：先探测 3100 端口，没服务才拉起 dev，然后打开 `入口.html`（`file://` 可看，含服务状态胶囊与模块地图）。
+> **为什么是 `127.0.0.1` 而不是 `localhost`**：本机若开着系统代理（Windows「设置 → 网络和 Internet → 代理」）
+> 且未配置例外地址，浏览器会把 `localhost:3100` 也交给代理转发，代理不认识这个本地主机名，直接返回 **502**，
+> 表现就是「页面打不开」。`127.0.0.1` 是明确的本地 IP，代理客户端按本地地址放行，同一服务用 IP 能开。
+> 所以文档、入口页、启动脚本一律写 `127.0.0.1`。
+
+Windows 上也可以双击 **`打开平台.cmd`**：先探测 3100 端口，没服务才拉起 dev，然后直接打开登录页（`http://127.0.0.1:3100/login`）。
 
 演示账号（口令统一为 `lexinote`，仅用于本机演示，不要用于任何真实环境）：
 
@@ -142,7 +147,7 @@ Windows 上也可以双击 **`打开平台.cmd`**：先探测 3100 端口，没�
 | `npm run dev` / `build` / `start` | 开发（3100）/ 生产构建 / 生产启动 |
 | `npm run typecheck` | `tsc --noEmit`，全仓 strict 检查 |
 | `npm run db:seed` | 重建数据库并灌演示数据 |
-| `npm run launch` | 探端口 → 需要就拉起 dev → 轮询就绪 → 打开入口页 |
+| `npm run launch` | 探端口 → 需要就拉起 dev → 轮询就绪 → 打开登录页 |
 | `node tooling/scripts/extract-glossary.mjs <xlsx>` | 把术语表 xlsx 抽成内置词库 JSON |
 
 > `next build` 偶发 `EPERM .next\trace`：先 `mkdir -p apps/web/.next && printf x > apps/web/.next/trace` 再构建即可。删 `.next` 时若被进程占用，改成 `mv .next .next-stale` 再构建。
@@ -219,7 +224,8 @@ packages/types            共享类型（含 WordbookExportDTO）
 packages/utils            文本归一 · 文档分页 · 来源标记 · 口令散列（scrypt）
 tooling/content           种子内容（演示课件、术语、译文、讨论）
 tooling/scripts           seed.mts · launch.mjs · extract-glossary.mjs
-入口.html / 打开平台.cmd  离线入口页与启动器
+index.html / 入口.html  「index.html」双击即进登录页（服务未启动时给出启动说明）
+打开平台.cmd         先拉起 dev，再自动打开登录页
 data/                     运行时数据（**不入库**）
 ```
 
@@ -232,7 +238,7 @@ data/                     运行时数据（**不入库**）
 ```bash
 npm run typecheck                                  # tsc --noEmit，全仓 strict
 NODE_OPTIONS= npm run build                        # 生产构建（含类型与路由表生成）
-curl -s -o /dev/null -w "%{http_code}" http://localhost:3100/login
+curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3100/login
 ```
 
 | 保障项 | 机制 |
@@ -273,7 +279,7 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:3100/login
 | 数据怎么处理、Cookie 存什么、谁能看到什么 | `/privacy` |
 | 维护者操作（重置口令、重建班级码、导出数据） | `/admin`（仅 TEACHER / ADMIN） |
 | 数据模型 | [`packages/db/schema.sql`](packages/db/schema.sql) |
-| 离线入口页与模块地图 | [`入口.html`](入口.html) |
+| 双击启动（自动拉起 dev 并打开登录页） | [`index.html`](index.html) · [`入口.html`](入口.html) · `打开平台.cmd` |
 | 种子内容与示例数据 | [`tooling/content/`](tooling/content/) |
 
 ---

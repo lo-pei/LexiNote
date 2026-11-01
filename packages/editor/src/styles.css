@@ -9,7 +9,7 @@
 }
 
 .ln-prose {
-  font-family: var(--font-read);
+  font-family: var(--font-prose);
   font-size: 18px;
   line-height: 1.82;
   color: var(--ink);
@@ -27,7 +27,7 @@
 .ln-prose h1,
 .ln-prose h2,
 .ln-prose h3 {
-  font-family: var(--font-read);
+  font-family: var(--font-prose);
   font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.24;
@@ -90,6 +90,22 @@
   border-left: 2px solid var(--accent-wash-2);
   color: var(--ink-2);
   font-size: 17px;
+}
+
+/* 英文引文一律排斜体；汉字在宋体里没有真斜体，这里显式排除，
+   避免浏览器把中文「伪斜」拉歪。 */
+.ln-prose blockquote:lang(en),
+.ln-prose blockquote[lang="en"],
+.ln-prose blockquote:has(> p:lang(en)),
+.ln-prose blockquote.is-en,
+.ln-prose blockquote.is-en p {
+  font-style: italic;
+}
+
+.ln-prose blockquote:lang(zh),
+.ln-prose blockquote[lang="zh"],
+.ln-prose blockquote:lang(zh-CN) {
+  font-style: normal;
 }
 
 .ln-prose blockquote p + p {

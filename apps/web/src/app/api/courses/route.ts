@@ -17,6 +17,10 @@ const schema = z.object({
   term: z.string().trim().max(60).optional(),
   /** 可选：把课程挂到自己的某个班级下 */
   classId: z.string().trim().min(1).nullable().optional(),
+  /** 授课班级名称：与其他两栏一起构成新建课程的四栏 */
+  className: z.string().trim().min(2, '请填写授课班级。').max(60).optional(),
+  /** 班级码：没选已有班级时，用它新建教学班 */
+  joinCode: z.string().trim().max(8).optional(),
 });
 
 export async function POST(request: Request) {

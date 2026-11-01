@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 /**
- * 一键启动：确认本地开发服务在跑，然后打开「入口.html」。
+ * 一键启动：确认本地开发服务在跑，然后直接打开登录页。
  *
  *   npm run launch          或在资源管理器里双击「打开平台.cmd」
  *
- * 两件事值得记下：
+ * 三件事值得记下：
  * 1) NODE_OPTIONS 必须清空再交给子进程。本机沙箱的 safe-delete 守卫会拦批量 unlink，
  *    Next 清 .next 时必然失败；置空后跑得通。
- * 2) Windows 上用 explorer.exe 打开 HTML —— 数组参数不经 cmd 解析，
+ * 2) 入口页不再是一个独立的模块地图，直接打开 /login —— 原来那份「入口.html」
+ *    只剩一个跳转，留给手动双击或历史链接用。
+ * 3) Windows 上用 explorer.exe 打开 URL —— 数组参数不经 cmd 解析，
  *    路径里的空格与括号（LexiNote (LN)）不会被吃掉。
  */
 import { spawn } from 'node:child_process';
@@ -19,8 +21,11 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
 const PORT = Number(process.env.PORT || 3100);
-const ENTRY = path.join(ROOT, '入口.html');
-const BASE = `http://localhost:${PORT}`;
+// 用 127.0.0.1 而不是 localhost：本机开着系统代理且未配例外，
+// 浏览器会把 localhost:PORT 也交给代理，代理回 502，页面打不开；
+// 127.0.0.1 被代理客户端当作本地地址放行。见 index.html 顶部注释。
+const BASE = `http://127.0.0.1:${PORT}`;
+const ENTRY_URL = `${BASE}/login`;
 
 const dim = (s) => `\x1b[2m${s}\x1b[0m`;
 const red = (s) => `\x1b[31m${s}\x1b[0m`;
@@ -46,27 +51,20 @@ function portOpen(port, timeout = 700) {
 }
 
 function openEntry() {
-  if (PORT !== 3100) {
-    console.log(dim(`  注意：入口.html 内链接固定指向 3100，当前端口为 ${PORT}，需手动改该文件。`));
-  }
   if (process.env.LN_NO_OPEN === '1') {
-    console.log(dim(`  （LN_NO_OPEN=1，跳过打开浏览器）${ENTRY}`));
-    return;
-  }
-  if (!existsSync(ENTRY)) {
-    console.log(red(`  找不到入口页：${ENTRY}`));
+    console.log(dim(`  （LN_NO_OPEN=1，跳过打开浏览器）${ENTRY_URL}`));
     return;
   }
   try {
     if (process.platform === 'win32') {
-      spawn('explorer.exe', [ENTRY], { stdio: 'ignore' }).unref();
+      spawn('explorer.exe', [ENTRY_URL], { stdio: 'ignore' }).unref();
     } else if (process.platform === 'darwin') {
-      spawn('open', [ENTRY], { stdio: 'ignore' }).unref();
+      spawn('open', [ENTRY_URL], { stdio: 'ignore' }).unref();
     } else {
-      spawn('xdg-open', [ENTRY], { stdio: 'ignore' }).unref();
+      spawn('xdg-open', [ENTRY_URL], { stdio: 'ignore' }).unref();
     }
   } catch {
-    console.log(dim(`  请手动打开：${ENTRY}`));
+    console.log(dim(`  请手动打开：${ENTRY_URL}`));
   }
 }
 
@@ -122,7 +120,7 @@ while (!ready && !exited && Date.now() < deadline) {
 if (ready) {
   console.log('');
   console.log(green('  ● 服务已就绪'), dim(BASE));
-  console.log(dim('    已在浏览器打开 入口.html；按 Ctrl+C 结束服务。'));
+  console.log(dim('    已在浏览器打开登录页；按 Ctrl+C 结束服务。'));
   console.log('');
   openEntry();
 } else if (!exited) {

@@ -16,7 +16,7 @@ export interface ShelfBook {
 /** 去掉连字符与空格，方便按 ISBN 检索 */
 const digitsOf = (value: string): string => value.replace(/[^0-9xX]/g, '').toLowerCase();
 
-export function ReadingShelf({ books }: { books: ShelfBook[] }) {
+export function ReadingShelf({ books, variant }: { books: ShelfBook[]; variant?: 'page' }) {
   const [query, setQuery] = useState('');
   const raw = query.trim();
 
@@ -36,9 +36,14 @@ export function ReadingShelf({ books }: { books: ShelfBook[] }) {
   }, [books, raw]);
 
   return (
-    <section className="shelf" aria-label="推荐阅读">
+    <section className={`shelf${variant === 'page' ? ' shelf--page' : ''}`} aria-label="推荐阅读">
       <div className="shelf__head">
-        <h2 className="shelf__title">推荐阅读</h2>
+        {/* 独立成页时页面没有别的标题，这里就用 h1，读屏不会缺一级标题 */}
+        {variant === 'page' ? (
+          <h1 className="shelf__title">推荐阅读</h1>
+        ) : (
+          <h2 className="shelf__title">推荐阅读</h2>
+        )}
         <span className="shelf__count">
           {raw ? `${list.length} / ${books.length} 种` : `${books.length} 种`}
         </span>
@@ -63,20 +68,19 @@ export function ReadingShelf({ books }: { books: ShelfBook[] }) {
       <p className="shelf__hint">ISBN 可省略连字符，直接输 9787301272695 也能查到。</p>
 
       {list.length ? (
-        <ol className="shelf__list">
+        <ul className="shelf__grid">
           {list.map((book, index) => (
-            <li className="shelf__item" key={book.id}>
-              <div className="shelf__row">
-                <span className="shelf__idx">{String(index + 1).padStart(2, '0')}</span>
-                <div className="shelf__text">
-                  <div className="shelf__name">{book.title}</div>
-                  <div className="shelf__meta">{book.author}</div>
-                  <div className="shelf__meta">
-                    {book.publisher} · {book.year}
-                  </div>
-                </div>
+            <li className="shelf__card" key={book.id}>
+              <span className="shelf__spine" aria-hidden="true" />
+              <div className="shelf__cardbody">
+                <div className="shelf__idx">{String(index + 1).padStart(2, '0')}</div>
+                <h3 className="shelf__name">{book.title}</h3>
+                <p className="shelf__meta">{book.author}</p>
+                <p className="shelf__meta">
+                  {book.publisher} · {book.year}
+                </p>
+                <p className="shelf__note">{book.note}</p>
               </div>
-              <p className="shelf__note">{book.note}</p>
               <div className="shelf__foot">
                 <span className="shelf__isbn">ISBN {book.isbn}</span>
                 {book.tags.map((tag) => (
@@ -87,7 +91,7 @@ export function ReadingShelf({ books }: { books: ShelfBook[] }) {
               </div>
             </li>
           ))}
-        </ol>
+        </ul>
       ) : (
         <p className="shelf__empty">
           没有匹配「{raw}」的书。换个书名关键词，或只输 ISBN 的后九位试试。

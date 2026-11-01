@@ -60,16 +60,11 @@ export default async function LibraryPage() {
   const notes = entries.filter((entry) => entry.kind === 'NOTE');
   const courseware = entries.filter((entry) => entry.kind === 'COURSEWARE');
 
-  const words = entries.reduce((sum, entry) => sum + entry.words, 0);
-
   return (
     <div className="wrap">
       <header className="head">
         <div>
           <h1 className="head__title">我的文档</h1>
-          <p className="head__sub">
-            课件副本与个人笔记都放在这里。全文 {words} 词，{entries.length} 份文档。
-          </p>
         </div>
         <div className="head__actions">
           <NewNote />

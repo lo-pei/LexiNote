@@ -20,17 +20,12 @@ export default async function HomePage() {
     user.role === 'TEACHER'
       ? courses.filter((course) => course.teacherId === user.id)
       : courses.filter((course) => course.enrolled);
-  const others = courses.filter((course) => !mine.some((item) => item.id === course.id));
+  // 学生只修本班这一门课，其余教学班的课程不对他展示，避免串班
+  const others =
+    user.role === 'STUDENT' ? [] : courses.filter((course) => !mine.some((item) => item.id === course.id));
 
   const library = user.role === 'STUDENT' || user.role === 'ADMIN' ? listLibrary(user).slice(0, 4) : [];
   const topics = listTopics(user).slice(0, 4);
-
-  const greeting =
-    user.role === 'TEACHER'
-      ? '今天要讲的这一讲，读本已经在这里了。'
-      : classes.length
-        ? '继续上一次没读完的那一段。'
-        : '先加入班级，课程与课件会自动出现在这里。';
 
   return (
     <div className="wrap">
@@ -39,17 +34,14 @@ export default async function HomePage() {
           <h1 className="head__title">
             {user.name}，{user.role === 'TEACHER' ? '课程总览' : '我的课程'}
           </h1>
-          <p className="head__sub">{greeting}</p>
         </div>
         <div className="head__actions">
-          <Link className="ln-btn ln-btn--outline ln-btn--sm" href="/classes">
-            班级
-          </Link>
-          <Link className="ln-btn ln-btn--outline ln-btn--sm" href="/library">
-            我的文档
-          </Link>
           {user.role === 'TEACHER' ? (
-            <NewCourse classes={classes.filter((item) => item.isOwner).map((item) => ({ id: item.id, name: item.name }))} />
+            <NewCourse
+              classes={classes
+                .filter((item) => item.isOwner)
+                .map((item) => ({ id: item.id, name: item.name, members: item.memberCount }))}
+            />
           ) : null}
         </div>
       </header>

@@ -30,15 +30,12 @@ export default async function LoginPage({
         <div className="gate__stack">
           <LoginForm next={next} presetAccount={searchParams.account ?? ''} />
           <div className="gate__legal">
-            <p>
-              这是独立部署的教学工具，与学校统一身份认证、教务系统没有打通。
-              <Link href="/register">首次使用？用学号注册</Link>
-            </p>
+            <p>这是独立部署的教学工具，与学校统一身份认证、教务系统没有打通。</p>
             {/* 宽屏时这两个入口在左侧画面右下角，与学期信息同一行；窄屏画面隐藏后再放回这里 */}
             <p className="gate__legal-links gate__legal-links--inline">
               <Link href="/privacy">隐私政策</Link>
               <span aria-hidden="true">·</span>
-              <Link href="/terms">使用说明</Link>
+              <Link href="/terms">使用条款</Link>
             </p>
           </div>
         </div>

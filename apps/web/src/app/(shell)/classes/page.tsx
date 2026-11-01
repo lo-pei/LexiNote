@@ -54,17 +54,9 @@ export default async function ClassesPage({
       <header className="head">
         <div>
           <h1 className="head__title">班级</h1>
-          <p className="head__sub">
-            {isTeacher
-              ? '一个班级对应一门课的固定学生名单。建班后把班级码或邀请链接发出去，学生入班即自动选修该班课程。'
-              : '凭班级码或邀请链接加入课程班。加入后，班里开设的课程会自动出现在「我的课程」里。'}
-          </p>
         </div>
         <div className="head__actions">
           {isTeacher ? <NewClass /> : null}
-          <Link className="ln-btn ln-btn--outline ln-btn--sm" href="/">
-            返回课程
-          </Link>
         </div>
       </header>
 

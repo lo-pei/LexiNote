@@ -12,20 +12,23 @@ export interface HeadingEntry {
   text: string;
   /** 第几个标题，与渲染后 h1–h3 的 DOM 顺序一一对应 */
   index: number;
+  /** 该标题在正文顶层块里的下标，演示分屏时用它把标题对到某一屏 */
+  block: number;
 }
 
 export function collectHeadings(doc: TiptapNode | null | undefined): HeadingEntry[] {
   const out: HeadingEntry[] = [];
-  let i = 0;
-  for (const node of doc?.content ?? []) {
+  const blocks = doc?.content ?? [];
+  let ordinal = 0;
+  blocks.forEach((node, block) => {
     if (node.type === 'heading' && typeof node.attrs?.level === 'number') {
       const text = textOf(node).replace(/\s+/g, ' ').trim();
       if (text) {
-        out.push({ level: node.attrs.level as number, text, index: i });
-        i += 1;
+        out.push({ level: node.attrs.level as number, text, index: ordinal, block });
+        ordinal += 1;
       }
     }
-  }
+  });
   return out;
 }
 

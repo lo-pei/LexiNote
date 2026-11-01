@@ -15,7 +15,6 @@ export default async function AdminPage() {
         <header className="head">
           <div>
             <h1 className="head__title">维护者说明</h1>
-            <p className="head__sub">这一页记录设计与实现取舍，面向任课教师与维护者。</p>
           </div>
           <div className="head__actions">
             <Link className="ln-btn ln-btn--outline ln-btn--sm" href="/help">
@@ -36,9 +35,6 @@ export default async function AdminPage() {
       <header className="head">
         <div>
           <h1 className="head__title">维护者说明</h1>
-          <p className="head__sub">
-            按阶段记录每一次关键取舍：为什么这样分层、哪些方案被否掉、代价是什么。改版时先看这里，避免推翻已经验证过的决定。
-          </p>
         </div>
         <div className="head__actions">
           <Link className="ln-btn ln-btn--outline ln-btn--sm" href="/help">

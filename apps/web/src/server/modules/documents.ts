@@ -159,13 +159,18 @@ export function createDocument(
   const id = uid('doc');
   const iso = new Date().toISOString();
   const content: TiptapDoc =
-    input.content ?? {
-      type: 'doc',
-      content: [
-        { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: input.title || '未命名' }] },
-        { type: 'paragraph' },
-      ],
-    };
+    input.content ??
+    // 标题已经单独存在 title 字段里，正文不再重复一份「未命名笔记」；
+    // DOCUMENT / NOTE 建出来就是一张白纸，光标落在首行由编辑器负责。
+    (input.kind === 'COURSEWARE'
+      ? {
+          type: 'doc',
+          content: [
+            { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: input.title || '未命名' }] },
+            { type: 'paragraph' },
+          ],
+        }
+      : { type: 'doc', content: [{ type: 'paragraph' }] });
 
   if (input.kind === 'COURSEWARE') {
     if (user.role !== 'TEACHER') throw forbidden('只有教师可以创建课件。');

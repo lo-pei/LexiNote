@@ -1,7 +1,7 @@
 import type { Course, CourseDetail, CoursewareSummary, SessionUser, TiptapDoc } from '@ln/types';
 import { countTerms, countWords, textOf } from '@ln/utils';
 import { getDb, parseJson } from '../db';
-import { forbidden, notFound } from '../http';
+import { badRequest, forbidden, notFound } from '../http';
 import { recordEvent } from './events';
 
 interface CourseRow {
@@ -151,12 +151,21 @@ export function enroll(courseId: string, user: SessionUser): { enrolled: boolean
 }
 
 export function createCourse(
-  input: { title: string; description?: string; term?: string; classId?: string | null },
+  input: {
+    title: string;
+    description?: string;
+    term?: string;
+    classId?: string | null;
+    /** 授课班级名称：给了班级码时按这个名字新建教学班 */
+    className?: string;
+    /** 班级码：教师自定，学生凭它加入 */
+    joinCode?: string;
+  },
   user: SessionUser,
 ): Course {
   if (user.role !== 'TEACHER' && user.role !== 'ADMIN') throw forbidden('只有教师可以创建课程。');
   const db = getDb();
-  const classId = input.classId?.trim() || null;
+  let classId = input.classId?.trim() || null;
 
   if (classId) {
     const owned = db.get<{ teacher_id: string }>('SELECT teacher_id FROM classes WHERE id = ?', classId);
@@ -164,8 +173,34 @@ export function createCourse(
     if (owned.teacher_id !== user.id) throw forbidden('只能把课程挂在自己的班级下。');
   }
 
-  const id = `crs_${globalThis.crypto.randomUUID().slice(0, 16)}`;
   const iso = new Date().toISOString();
+
+  // 没选已有班级、但给了班级码：先建班，再把课程挂上去
+  if (!classId && input.joinCode) {
+    const code = input.joinCode.trim().toUpperCase().replace(/\s+/g, '');
+    if (!/^[A-Z0-9]{4,8}$/.test(code)) {
+      throw badRequest('班级码用 4–8 位大写字母或数字。', 'joinCode');
+    }
+    const taken = db.get('SELECT 1 FROM classes WHERE join_code = ?', code);
+    if (taken) throw badRequest('这个班级码已被占用，换一个。', 'joinCode');
+
+    const name = input.className?.trim();
+    if (!name) throw badRequest('请填写授课班级。', 'className');
+
+    classId = `cls_${globalThis.crypto.randomUUID().slice(0, 16)}`;
+    db.run(
+      `INSERT INTO classes (id, teacher_id, name, term, description, join_code, join_open, created_at)
+       VALUES (?, ?, ?, ?, NULL, ?, 1, ?)`,
+      classId,
+      user.id,
+      name,
+      input.term?.trim() || null,
+      code,
+      iso,
+    );
+  }
+
+  const id = `crs_${globalThis.crypto.randomUUID().slice(0, 16)}`;
   db.run(
     `INSERT INTO courses (id, teacher_id, class_id, title, description, term, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,

@@ -27,22 +27,21 @@ export function overview(courseId: string, user: SessionUser): AnalyticsOverview
     forum_replies: number;
     checks: number;
     hits: number;
-    last_day: string | null;
   }>(
+    // 学号升序：教师按名册逐行核对，比按活跃度排更自然，也不涉及个人行为画像
     `SELECT e.student_id, u.name, u.login_no,
        COALESCE(SUM(a.note_saves), 0) AS note_saves,
        COALESCE(SUM(a.term_clicks), 0) AS term_clicks,
        COALESCE(SUM(a.words_added), 0) AS words_added,
        COALESCE(SUM(a.forum_replies), 0) AS forum_replies,
        COALESCE(SUM(a.translation_checks), 0) AS checks,
-       COALESCE(SUM(a.translation_hits), 0) AS hits,
-       MAX(a.day) AS last_day
+       COALESCE(SUM(a.translation_hits), 0) AS hits
      FROM enrollments e
      JOIN users u ON u.id = e.student_id
      LEFT JOIN analytics_daily a ON a.student_id = e.student_id AND a.course_id = e.course_id
      WHERE e.course_id = ?
      GROUP BY e.student_id
-     ORDER BY (COALESCE(SUM(a.note_saves),0) + COALESCE(SUM(a.term_clicks),0)) DESC`,
+     ORDER BY u.login_no ASC`,
     courseId,
   );
 
@@ -55,7 +54,6 @@ export function overview(courseId: string, user: SessionUser): AnalyticsOverview
     wordsAdded: s.words_added,
     forumReplies: s.forum_replies,
     translationHitRate: s.checks ? Math.round((s.hits / s.checks) * 100) : 0,
-    lastActiveAt: s.last_day,
   }));
 
   const totalChecks = students.reduce((sum, s) => sum + s.checks, 0);
@@ -130,9 +128,26 @@ export function overview(courseId: string, user: SessionUser): AnalyticsOverview
 }
 
 /** 教师可查看的课程列表（用于学情页的课程切换） */
-export function teacherCourses(user: SessionUser): { id: string; title: string }[] {
-  return getDb().all<{ id: string; title: string }>(
-    `SELECT id, title FROM courses WHERE teacher_id = ? ORDER BY created_at ASC`,
+export interface TeachingCourseOption {
+  id: string;
+  title: string;
+  /** 教学班名，用于按钮上区分两个平行班 */
+  className: string | null;
+  /** 上课时间，来自班级说明 */
+  classDescription: string | null;
+  studentCount: number;
+}
+
+export function teacherCourses(user: SessionUser): TeachingCourseOption[] {
+  return getDb().all<TeachingCourseOption>(
+    `SELECT c.id, c.title,
+       cls.name AS className,
+       cls.description AS classDescription,
+       (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS studentCount
+     FROM courses c
+     LEFT JOIN classes cls ON cls.id = c.class_id
+     WHERE c.teacher_id = ?
+     ORDER BY cls.name ASC, c.created_at ASC`,
     user.id,
   );
 }

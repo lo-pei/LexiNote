@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { formatDate } from '@ln/utils';
 import { requirePageUser } from '@/lib/session';
 import { glossaryIndex, listWordbooks, pageItems } from '@/server/modules/vocabulary';
-import { AddTerm, MasteryDots, NewWordbook, RemoveItem } from '@/components/wordbook-controls';
+import { AddTerm, DeleteWordbook, MasteryDots, NewWordbook, Pronounce, RemoveItem } from '@/components/wordbook-controls';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,11 +42,6 @@ export default async function WordbooksPage({
       <header className="head">
         <div>
           <h1 className="head__title">生词本</h1>
-          <p className="head__sub">
-            {isGlossary
-              ? `内置词库，取自张法连《法律英语术语表》，共 ${active?.itemCount ?? total} 条。可按字母浏览或直接搜索。`
-              : `阅读时点开的术语可以随时收进来，来源与原文语境一起保存。共 ${active?.itemCount ?? total} 条。`}
-          </p>
         </div>
         <div className="head__actions">
           {active && !isGlossary ? <AddTerm wordbookId={active.id} /> : null}
@@ -77,7 +72,7 @@ export default async function WordbooksPage({
               {active.name}
               {active.description ? ` · ${active.description}` : ''}
             </span>
-            <span style={{ display: 'flex', gap: 6 }}>
+            <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <a className="ln-btn ln-btn--outline ln-btn--sm" href={`/api/wordbooks/${active.id}/export?format=xlsx`}>
                 导出 Excel
               </a>
@@ -92,6 +87,8 @@ export default async function WordbooksPage({
               >
                 打印 / PDF
               </a>
+              {/* 内置词库（法律英语单词本）不可删，只允许移除词条 */}
+              {isGlossary ? null : <DeleteWordbook wordbookId={active.id} name={active.name} />}
             </span>
           </div>
 
@@ -146,6 +143,7 @@ export default async function WordbooksPage({
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div>
                         <span className="wb-term">{item.entry.term}</span>
+                        <Pronounce term={item.entry.term} />
                         {item.entry.phonetic ? <span className="wb-phon">{item.entry.phonetic}</span> : null}
                       </div>
                       <p className="wb-def">{item.entry.definitionZh}</p>
