@@ -2215,6 +2215,16 @@ input,
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* 窄屏去掉左侧画面后，表单自己撑满，别被 372px + 内边距顶出屏幕 */
+  .gate__formwrap {
+    padding: 28px 20px;
+  }
+
+  .gate__form,
+  .gate__stack {
+    max-width: 100%;
+  }
+
   .gate__art {
     display: none;
   }
@@ -3458,4 +3468,56 @@ input,
 .gate__legal-links a {
   margin-left: 0;
   color: var(--ink-3);
+}
+
+/* 宽屏时右栏不再重复这两个入口（已在左侧画面右下角） */
+.gate__legal-links--inline {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .gate__legal-links--inline {
+    display: flex;
+  }
+}
+
+/* 登录 / 注册页：画面底部一行，左学期信息、右隐私与说明 */
+.gate__art-foot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  font-size: 12px;
+  color: rgba(242, 242, 236, 0.5);
+}
+
+.gate__art-legal {
+  display: flex;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.gate__art-legal a {
+  color: rgba(242, 242, 236, 0.62);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--fast);
+}
+
+.gate__art-legal a:hover {
+  color: #f2f2ec;
+}
+
+/* 提示句不折行 */
+.ln-hint--nowrap {
+  white-space: nowrap;
+}
+
+/* 手机上宽度不够，允许折行（放最后，避免被上面的 nowrap 覆盖） */
+@media (max-width: 860px) {
+  .ln-hint--nowrap {
+    white-space: normal;
+  }
 }

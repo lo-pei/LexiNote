@@ -28,20 +28,13 @@ export function RegisterForm({
   const [loginNo, setLoginNo] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
   const [classCode, setClassCode] = useState(presetCode);
   const [agree, setAgree] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const mismatch = confirm.length > 0 && confirm !== password;
-
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (mismatch) {
-      setError('两次输入的密码不一致。');
-      return;
-    }
     if (!agree) {
       setError('请先确认你已了解密码安全提示。');
       return;
@@ -145,27 +138,11 @@ export function RegisterForm({
         <span className="ln-hint">至少 8 位，需含字母、数字或符号中的两类；不能与学号相同。</span>
       </div>
 
-      <div className="ln-field">
-        <label className="ln-label" htmlFor="reg-confirm">
-          再输一次
-        </label>
-        <input
-          id="reg-confirm"
-          className="ln-input"
-          type="password"
-          value={confirm}
-          onChange={(event) => setConfirm(event.target.value)}
-          autoComplete="new-password"
-          required
-        />
-        {mismatch ? <span className="ln-hint ln-hint--warn">两次输入不一致。</span> : null}
-      </div>
-
       <div className="warn-box">
         <b>请不要使用学校密码</b>
         <p>
-          教务系统、校园门户的密码不要用在这里。这个站点是独立部署的，数据库与运维都不在校内；
-          一旦复用，任何一侧泄露都会连带危及你的成绩、选课与个人信息。请单独设一个只在这里用的密码。
+          教务系统、校园门户的密码不要用在这里。本站独立部署，数据库与运维都不在校内；
+          复用密码时，任一侧泄露都会危及成绩、选课与个人信息。请单独设一个只在这里用的密码。
         </p>
       </div>
 
@@ -183,7 +160,9 @@ export function RegisterForm({
             autoCapitalize="characters"
             spellCheck={false}
           />
-          <span className="ln-hint">留空也能注册，登录后在「班级」页输入班级码或打开邀请链接即可加入。</span>
+          <span className="ln-hint ln-hint--nowrap">
+            留空也能注册，登录后在「班级」页用班级码或邀请链接加入。
+          </span>
         </div>
       )}
 

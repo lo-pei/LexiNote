@@ -25,8 +25,13 @@ export function AuthArt({ footer = 'LAW 2103 · 2026 秋季学期' }: { footer?:
         <p className="gate__cite">精读 · 标注 · 对照 · 重用</p>
       </div>
 
-      <div style={{ position: 'relative', zIndex: 1, fontSize: 12, color: 'rgba(242,242,236,.5)' }}>
-        {footer}
+      <div className="gate__art-foot">
+        <span>{footer}</span>
+        <span className="gate__art-legal">
+          <Link href="/privacy">隐私政策</Link>
+          <span aria-hidden="true">·</span>
+          <Link href="/terms">使用说明</Link>
+        </span>
       </div>
     </section>
   );
