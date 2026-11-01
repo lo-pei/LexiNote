@@ -1,0 +1,334 @@
+/* ============================================================
+   LexiNote — 编辑内核样式（Tiptap 渲染面）
+   只使用 globals.css 的设计变量：纸 / 墨 / 朱砂。
+   规则：阅读面用衬线，UI 用无衬线；分隔靠色阶，竖线只用于「引文」与「批注」。
+   ============================================================ */
+
+.ln-editor {
+  position: relative;
+}
+
+.ln-prose {
+  font-family: var(--font-read);
+  font-size: 18px;
+  line-height: 1.82;
+  color: var(--ink);
+  letter-spacing: 0.002em;
+  outline: none;
+  text-wrap: pretty;
+}
+
+.ln-prose > * + * {
+  margin-top: 1.05em;
+}
+
+/* ── 标题 ─────────────────────────────────────────────────── */
+
+.ln-prose h1,
+.ln-prose h2,
+.ln-prose h3 {
+  font-family: var(--font-read);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.24;
+  text-wrap: balance;
+}
+
+.ln-prose h1 {
+  font-size: 30px;
+  margin-top: 1.9em;
+  letter-spacing: -0.028em;
+}
+
+.ln-prose h2 {
+  font-size: 23px;
+  margin-top: 1.75em;
+}
+
+.ln-prose h3 {
+  font-size: 18.5px;
+  margin-top: 1.6em;
+  color: var(--ink);
+}
+
+.ln-prose h1:first-child,
+.ln-prose h2:first-child,
+.ln-prose h3:first-child {
+  margin-top: 0;
+}
+
+/* 课件正文里的英文段落使用可读行长，不撑满整个版心 */
+.ln-prose p {
+  text-wrap: pretty;
+}
+
+.ln-prose strong {
+  font-weight: 600;
+}
+
+.ln-prose em {
+  font-style: italic;
+}
+
+.ln-prose a {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--accent-wash-2);
+}
+
+.ln-prose a:hover {
+  text-decoration-color: var(--accent);
+}
+
+/* ── 引文：唯一的竖线 ─────────────────────────────────────── */
+
+.ln-prose blockquote {
+  margin: 1.5em 0;
+  padding: 2px 0 2px 18px;
+  border-left: 2px solid var(--accent-wash-2);
+  color: var(--ink-2);
+  font-size: 17px;
+}
+
+.ln-prose blockquote p + p {
+  margin-top: 0.7em;
+}
+
+/* ── 列表 ─────────────────────────────────────────────────── */
+
+.ln-prose ul,
+.ln-prose ol {
+  padding-left: 1.35em;
+  list-style: none;
+}
+
+.ln-prose ul {
+  list-style: disc;
+}
+
+.ln-prose ol {
+  list-style: decimal;
+}
+
+.ln-prose li {
+  margin: 0.42em 0;
+  padding-left: 0.2em;
+}
+
+.ln-prose li::marker {
+  color: var(--ink-4);
+  font-size: 0.9em;
+}
+
+.ln-prose li > p {
+  display: inline;
+}
+
+/* ── 分隔与代码 ───────────────────────────────────────────── */
+
+.ln-prose hr {
+  margin: 2.4em 0;
+  background: var(--rule);
+}
+
+.ln-prose code {
+  font-family: ui-monospace, "SFMono-Regular", "JetBrains Mono", monospace;
+  font-size: 0.86em;
+  padding: 1px 5px;
+  border-radius: 2px;
+  background: var(--paper-2);
+  color: var(--ink);
+}
+
+/* ── 术语节点 legalTerm（说明书 §5.1） ────────────────────── */
+
+.ln-term {
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--ink-4);
+  cursor: pointer;
+  transition: color var(--fast), text-decoration-color var(--fast), background var(--fast);
+}
+
+.ln-term:hover {
+  color: var(--accent-ink);
+  text-decoration-color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.ln-term:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.ln-editor--edit .ln-term {
+  cursor: text;
+}
+
+.ln-editor--readonly .ln-term,
+.ln-editor--presentation .ln-term {
+  cursor: pointer;
+}
+
+/* ── callout（三种语气） ─────────────────────────────────── */
+
+.ln-prose [data-callout] {
+  position: relative;
+  padding: 18px 20px 18px 20px;
+  border-radius: 3px;
+  background: var(--paper-2);
+  font-size: 16.5px;
+  line-height: 1.75;
+}
+
+.ln-prose [data-callout]::before {
+  content: "要点";
+  display: block;
+  margin-bottom: 7px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+}
+
+.ln-prose [data-callout][data-variant="key"] {
+  background: var(--accent-wash);
+}
+
+.ln-prose [data-callout][data-variant="key"]::before {
+  content: "关键";
+  color: var(--accent-ink);
+}
+
+.ln-prose [data-callout][data-variant="warn"] {
+  background: var(--ground-2);
+}
+
+.ln-prose [data-callout][data-variant="warn"]::before {
+  content: "注意";
+}
+
+.ln-prose [data-callout] > *:last-child {
+  margin-bottom: 0;
+}
+
+.ln-prose [data-callout] p {
+  margin-top: 0;
+}
+
+/* ── 流程图节点 ───────────────────────────────────────────── */
+
+.ln-prose figure[data-flowchart] {
+  margin: 1.8em 0;
+}
+
+.ln-flow {
+  padding: 14px;
+  border-radius: 3px;
+  background: var(--paper-2);
+}
+
+.ln-flow__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.ln-flow__label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 6px 10px;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  line-height: 1.35;
+  text-align: center;
+  font-weight: 500;
+}
+
+.ln-flow__empty {
+  padding: 22px;
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+.ln-flow__node {
+  transition: opacity var(--fast);
+}
+
+/* ── 图片 ─────────────────────────────────────────────────── */
+
+.ln-prose figure[data-image] {
+  margin: 1.9em 0;
+}
+
+.ln-prose figure[data-image] img {
+  width: 100%;
+  height: auto;
+  border-radius: 2px;
+  background: var(--ground-2);
+}
+
+.ln-prose figure[data-image] figcaption {
+  margin-top: 8px;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  color: var(--ink-3);
+  line-height: 1.6;
+}
+
+/* ── 占位符 ───────────────────────────────────────────────── */
+
+.ln-prose p.is-editor-empty:first-child::before,
+.ln-prose .is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--ink-4);
+}
+
+/* ── 演示态：只放大字号，不改版心 ─────────────────────────── */
+
+.ln-editor--presentation .ln-prose {
+  font-size: 21px;
+  line-height: 1.86;
+}
+
+.ln-editor--presentation .ln-prose h1 {
+  font-size: 38px;
+}
+
+.ln-editor--presentation .ln-prose h2 {
+  font-size: 28px;
+}
+
+/* ── 移动端 ───────────────────────────────────────────────── */
+
+@media (max-width: 860px) {
+  .ln-prose {
+    font-size: 17px;
+    line-height: 1.78;
+  }
+
+  .ln-prose h1 {
+    font-size: 26px;
+  }
+
+  .ln-prose h2 {
+    font-size: 21px;
+  }
+
+  .ln-editor--presentation .ln-prose {
+    font-size: 18.5px;
+  }
+}

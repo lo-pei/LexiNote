@@ -1,0 +1,246 @@
+// Prisma schema —— 数据契约（说明书 §4）。
+// 生产环境使用 PostgreSQL 15+，content 列类型为 Jsonb。
+// 本地开发由 packages/db/schema.sql 提供的 SQLite 适配器承载同一模型，
+// 字段、约束与索引一一对应（见 README「数据层」）。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum DocStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum DocKind {
+  COURSEWARE
+  NOTE
+}
+
+enum SidebarType {
+  EXTENSION
+  ARTICLE
+  TEACHER_NOTE
+}
+
+enum ReadLevel {
+  REQUIRED
+  OPTIONAL
+}
+
+enum SourceType {
+  COURSE
+  DOCUMENT
+  FORUM
+  MANUAL
+}
+
+enum TopicType {
+  QUESTION
+  ASSIGNMENT
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  role         Role     @default(STUDENT)
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  teacherId   String
+  title       String
+  description String?
+  term        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  teacher     User     @relation(fields: [teacherId], references: [id])
+  documents   Document[]
+  topics      ForumTopic[]
+}
+
+model Enrollment {
+  id        String   @id @default(uuid())
+  studentId String
+  courseId  String
+  createdAt DateTime @default(now())
+
+  @@unique([studentId, courseId])
+}
+
+model Document {
+  id          String     @id @default(uuid())
+  ownerId     String
+  courseId    String?
+  parentDocId String?
+  title       String
+  subtitle    String?
+  content     Json
+  status      DocStatus  @default(DRAFT)
+  kind        DocKind    @default(NOTE)
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+  snapshots   DocumentSnapshot[]
+  sidebar     SidebarItem[]
+
+  @@index([courseId, kind, status])
+}
+
+model DocumentSnapshot {
+  id         String   @id @default(uuid())
+  documentId String
+  userId     String
+  content    Json
+  createdAt  DateTime @default(now())
+
+  @@index([documentId, createdAt])
+}
+
+model SidebarItem {
+  id        String      @id @default(uuid())
+  docId     String
+  type      SidebarType
+  title     String
+  content   Json
+  level     ReadLevel   @default(OPTIONAL)
+  sortOrder Int         @default(0)
+}
+
+model TranslationTemplate {
+  id            String  @id @default(uuid())
+  sourceHash    String  @unique
+  sourceText    String
+  translation   String
+  langPair      String  @default("en-zh")
+  termOverrides Json?
+  createdBy     String
+}
+
+model VocabularyEntry {
+  id            String  @id @default(uuid())
+  term          String
+  phonetic      String?
+  definitionZh  String
+  definitionEn  String?
+  examples      Json?
+  legalDomain   String?
+
+  @@unique([term, definitionZh])
+}
+
+model Wordbook {
+  id     String @id @default(uuid())
+  userId String
+  name   String
+  description String?
+}
+
+model WordbookItem {
+  id            String     @id @default(uuid())
+  userId        String
+  wordbookId    String
+  entryId       String
+  sourceType    SourceType
+  sourceDocId   String?
+  sourceContext String?
+  masteryLevel  Int        @default(0)
+  addedAt       DateTime   @default(now())
+
+  @@unique([wordbookId, entryId])
+}
+
+model ForumTopic {
+  id                String    @id @default(uuid())
+  courseId          String
+  authorId          String
+  type              TopicType
+  title             String
+  body              Json
+  isGraded          Boolean   @default(false)
+  dueAt             DateTime?
+  allowedReplyRoles String[]
+  createdAt         DateTime  @default(now())
+}
+
+model ForumPost {
+  id           String   @id @default(uuid())
+  topicId      String
+  authorId     String
+  parentPostId String?
+  body         Json
+  isAnswer     Boolean  @default(false)
+  score        Int?
+  createdAt    DateTime @default(now())
+}
+
+model Annotation {
+  id         String   @id @default(uuid())
+  targetType String
+  targetId   String
+  anchor     Json
+  authorId   String
+  content    String
+  isPrivate  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model LearningEvent {
+  id        String   @id @default(uuid())
+  userId    String
+  eventType String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@index([userId, eventType, createdAt])
+}
+
+/// 定时任务从 LearningEvent 聚合而来，仪表盘只读此表
+model AnalyticsDaily {
+  id                String @id @default(uuid())
+  day               String
+  courseId          String
+  studentId         String
+  noteSaves         Int    @default(0)
+  termClicks        Int    @default(0)
+  wordsAdded        Int    @default(0)
+  forumReplies      Int    @default(0)
+  translationChecks Int    @default(0)
+  translationHits   Int    @default(0)
+
+  @@unique([day, courseId, studentId])
+  @@index([courseId, day])
+}
+
+model SkillConfig {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  yaml      String
+  version   Int      @default(1)
+  updatedAt DateTime @updatedAt
+}
+
+model DevLog {
+  id        String @id @default(uuid())
+  phase     String
+  goal      String
+  decisions Json
+  status    String
+  sortOrder Int
+}
