@@ -1,5 +1,20 @@
 # LexiNote · 法律英语精读
 
+<div align="center">
+
+# LexiNote · 法律英语精读
+
+**面向法学院课程的法律英语交互式阅读平台：课件、术语、生词本、讨论与学情，围绕一份可交互的文档展开。**
+
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square)
+![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square)
+![Tiptap](https://img.shields.io/badge/Tiptap-2-0D1B2A?style=flat-square)
+![node:sqlite](https://img.shields.io/badge/db-node%3Asqlite-003B57?style=flat-square)
+
+`法律英语` · `逐句精读` · `术语标注` · `译文对照` · `生词本` · `讨论批注` · `学情` · `整屏演示`
+
+</div>
+
 面向法学院课程的法律英语交互式阅读与写作平台：英文原文逐段精读，术语点开有释义，可对照译文、积累生词、提交讨论，教师端能看课程学情；同一份文档还能整屏投屏演示，一屏一段，适合课堂上讲判例。
 
 独立部署，不接学校统一身份认证与教务系统；所有数据落在部署机上的单个 SQLite 文件里。
