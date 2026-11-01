@@ -1,5 +1,3 @@
-# LexiNote · 法律英语精读
-
 <div align="center">
 
 # LexiNote · 法律英语精读
