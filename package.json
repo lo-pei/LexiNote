@@ -15,7 +15,9 @@
     "lint": "npm run lint --workspace @ln/web",
     "typecheck": "tsc -p apps/web/tsconfig.json --noEmit",
     "db:reset": "tsx tooling/scripts/seed.mts",
-    "db:seed": "tsx tooling/scripts/seed.mts"
+    "db:seed": "tsx tooling/scripts/seed.mts",
+    "textbook:import": "tsx tooling/scripts/import-textbook.mts",
+    "laws:import": "tsx tooling/scripts/import-laws.mts"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

@@ -61,10 +61,6 @@ export function PlanCourseware({ options, activeId }: { options: CoursewareOptio
           );
         })}
       </div>
-      <p className="ln-hint">
-        换一套课件后，下面的专题与案例会整份替换；学生端看到的也是当前这一套。要再加一套，往{' '}
-        <code>data/course-plan.local.json</code> 的 <code>coursewares</code> 里追加一项即可。
-      </p>
       {error ? <div className="notice notice--error">{error}</div> : null}
     </div>
   );

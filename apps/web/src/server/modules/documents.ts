@@ -18,6 +18,11 @@ interface DocRow {
   owner_id: string;
   course_id: string | null;
   parent_doc_id: string | null;
+  textbook_id: string | null;
+  chapter_no: number | null;
+  legal_slug: string | null;
+  legal_category: string | null;
+  legal_published_on: string | null;
   title: string;
   subtitle: string | null;
   content: string;
@@ -78,8 +83,14 @@ export function getDocument(id: string, user: SessionUser): DocumentWithMeta {
       db.get<{ teacher_id: string }>(`SELECT teacher_id FROM courses WHERE id = ?`, row.course_id)
         ?.teacher_id === user.id,
   );
-  const visible = isOwner || isCourseTeacher || (row.status === 'PUBLISHED' && canViewCourse(user, row.course_id));
+  // 教材与英文法律是公共读物：已发布即对全部登录用户开放，不看选课（两者都不挂课程）
+  const isPublicRead = (row.kind === 'TEXTBOOK' || row.kind === 'LAW') && row.status === 'PUBLISHED';
+  const visible = isOwner || isCourseTeacher || isPublicRead || (row.status === 'PUBLISHED' && canViewCourse(user, row.course_id));
   if (!visible) throw forbidden('你还没有权限阅读这份文档。');
+
+  // 教材与法律正文不开放编辑，连导入账号（所有者）也不例外——否则一次误保存就改了原文
+  const editableKind = row.kind !== 'TEXTBOOK' && row.kind !== 'LAW';
+  const canEdit = isOwner && editableKind;
 
   const owner = db.get<{ name: string }>(`SELECT name FROM users WHERE id = ?`, row.owner_id);
   const course = row.course_id
@@ -94,6 +105,11 @@ export function getDocument(id: string, user: SessionUser): DocumentWithMeta {
     ownerId: row.owner_id,
     courseId: row.course_id,
     parentDocId: row.parent_doc_id,
+    textbookId: row.textbook_id,
+    chapterNo: row.chapter_no,
+    legalSlug: row.legal_slug,
+    legalCategory: row.legal_category,
+    legalPublishedOn: row.legal_published_on,
     title: row.title,
     subtitle: row.subtitle,
     content: parseJson<TiptapDoc>(row.content, { type: 'doc', content: [] }),
@@ -104,12 +120,16 @@ export function getDocument(id: string, user: SessionUser): DocumentWithMeta {
     ownerName: owner?.name ?? '未知',
     courseTitle: course?.title ?? null,
     originTitle: origin?.title ?? null,
-    canEdit: isOwner,
-    readOnlyReason: isOwner
+    canEdit,
+    readOnlyReason: canEdit
       ? null
-      : row.kind === 'COURSEWARE'
-        ? '教师发布的课件为只读；纳入我的笔记库后可自由编辑。'
-        : '仅文档所有者可以编辑。',
+      : row.kind === 'TEXTBOOK'
+        ? '教材正文为只读：可以在阅读页标生词、对照译文、做批注，正文本体不提供编辑。'
+        : row.kind === 'LAW'
+          ? '英文法律正文为只读：译本取自全国人大官网，站内只用于阅读与术语标注。'
+          : row.kind === 'COURSEWARE'
+            ? '教师发布的课件为只读；纳入我的笔记库后可自由编辑。'
+            : '仅文档所有者可以编辑。',
     sidebar: sidebarOf(row.parent_doc_id ?? row.id, Boolean(row.parent_doc_id)),
   };
 }
@@ -129,9 +149,11 @@ export interface LibraryEntry {
 export function listLibrary(user: SessionUser): LibraryEntry[] {
   const db = getDb();
   const rows = db.all<DocRow & { origin_title: string | null }>(
+    // 教材章节归教材库管理、英文法律归专题管理，都不混进「我的文档」，
+    // 否则一次导入就是上百行噪音
     `SELECT d.*, o.title AS origin_title
      FROM documents d LEFT JOIN documents o ON o.id = d.parent_doc_id
-     WHERE d.owner_id = ? AND d.deleted_at IS NULL
+     WHERE d.owner_id = ? AND d.deleted_at IS NULL AND d.kind NOT IN ('TEXTBOOK','LAW')
      ORDER BY d.updated_at DESC`,
     user.id,
   );
@@ -156,6 +178,8 @@ export function createDocument(
   user: SessionUser,
 ): { id: string } {
   const db = getDb();
+  if (input.kind === 'TEXTBOOK') throw badRequest('教材由导入流程生成，不能手工创建。', 'kind');
+  if (input.kind === 'LAW') throw badRequest('英文法律由导入流程生成，不能手工创建。', 'kind');
   const id = uid('doc');
   const iso = new Date().toISOString();
   const content: TiptapDoc =
@@ -206,6 +230,8 @@ export function saveDocument(
   const row = db.get<DocRow>(`SELECT * FROM documents WHERE id = ? AND deleted_at IS NULL`, id);
   if (!row) throw notFound('文档不存在。');
   if (row.owner_id !== user.id) throw forbidden('只有文档所有者可以保存。');
+  if (row.kind === 'TEXTBOOK') throw forbidden('教材正文为只读，不能保存修改。');
+  if (row.kind === 'LAW') throw forbidden('英文法律正文为只读，不能保存修改。');
 
   const iso = new Date().toISOString();
   const content = patch.content ? JSON.stringify(patch.content) : row.content;

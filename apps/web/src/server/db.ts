@@ -101,6 +101,104 @@ export class Db {
       this.db.exec(`ALTER TABLE vocabulary_entries ADD COLUMN origin TEXT NOT NULL DEFAULT 'USER'`);
     }
     this.db.exec('CREATE INDEX IF NOT EXISTS idx_vocab_origin ON vocabulary_entries(origin)');
+
+    this.migrateDocuments();
+  }
+
+  /**
+   * 文档表迁移：documents 的 kind 带 CHECK 约束，SQLite 无法 ALTER 放宽，
+   * 只能重建表。每次新增一种文档类型都要走一遍，因此这里的判断按「缺哪一种」写，
+   * 重建时按现有列取值，教材章节的 textbook_id / chapter_no 不会被这次迁移抹掉。
+   * 判断依据直接读 sqlite_master 里的建表语句，比看列更准确——
+   * 列都在但 CHECK 仍旧限制旧类型的情况同样要重建。
+   */
+  private migrateDocuments(): void {
+    const row = this.db
+      .prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'documents'`)
+      .get() as { sql: string } | undefined;
+    const needsRebuild = Boolean(row && !row.sql.includes("'LAW'"));
+
+    if (needsRebuild) {
+      const cols = this.columns('documents');
+      const pick = (name: string, fallback: string) => (cols.some((c) => c.name === name) ? name : fallback);
+
+      this.db.exec('PRAGMA foreign_keys = OFF');
+      try {
+        this.db.exec('BEGIN');
+        this.db.exec(`
+          CREATE TABLE documents__rebuild (
+            id            TEXT PRIMARY KEY,
+            owner_id      TEXT NOT NULL REFERENCES users(id),
+            course_id     TEXT REFERENCES courses(id),
+            parent_doc_id TEXT REFERENCES documents(id),
+            textbook_id   TEXT REFERENCES textbooks(id),
+            chapter_no    INTEGER,
+            legal_slug    TEXT,
+            legal_category TEXT,
+            legal_published_on TEXT,
+            title         TEXT NOT NULL,
+            subtitle      TEXT,
+            content       TEXT NOT NULL,
+            status        TEXT NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','PUBLISHED')),
+            kind          TEXT NOT NULL DEFAULT 'NOTE' CHECK (kind IN ('COURSEWARE','NOTE','TEXTBOOK','LAW')),
+            sort_order    INTEGER NOT NULL DEFAULT 0,
+            word_count    INTEGER NOT NULL DEFAULT 0,
+            created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
+            deleted_at    TEXT
+          )`);
+        this.db.exec(`
+          INSERT INTO documents__rebuild
+            (id, owner_id, course_id, parent_doc_id, textbook_id, chapter_no,
+             legal_slug, legal_category, legal_published_on,
+             title, subtitle, content, status, kind, sort_order, word_count, created_at, updated_at, deleted_at)
+          SELECT id, owner_id, course_id, parent_doc_id,
+                 ${pick('textbook_id', 'NULL')}, ${pick('chapter_no', 'NULL')},
+                 ${pick('legal_slug', 'NULL')}, ${pick('legal_category', 'NULL')},
+                 ${pick('legal_published_on', 'NULL')},
+                 title, subtitle, content, status, kind, sort_order, ${pick('word_count', '0')},
+                 created_at, updated_at, deleted_at
+          FROM documents`);
+        this.db.exec('DROP TABLE documents');
+        this.db.exec('ALTER TABLE documents__rebuild RENAME TO documents');
+        this.db.exec('COMMIT');
+        console.warn('[db] documents 表已重建：kind 放宽至四种类型，并补出英文法律的两列。');
+      } catch (error) {
+        this.db.exec('ROLLBACK');
+        throw error;
+      } finally {
+        this.db.exec('PRAGMA foreign_keys = ON');
+      }
+    } else {
+      // 新库走 schema.sql，这里只兜底列缺失的情况
+      const cols = this.columns('documents');
+      if (!cols.some((c) => c.name === 'textbook_id')) {
+        this.db.exec('ALTER TABLE documents ADD COLUMN textbook_id TEXT REFERENCES textbooks(id)');
+      }
+      if (!cols.some((c) => c.name === 'chapter_no')) {
+        this.db.exec('ALTER TABLE documents ADD COLUMN chapter_no INTEGER');
+      }
+      if (!cols.some((c) => c.name === 'legal_slug')) {
+        this.db.exec('ALTER TABLE documents ADD COLUMN legal_slug TEXT');
+      }
+      if (!cols.some((c) => c.name === 'legal_category')) {
+        this.db.exec('ALTER TABLE documents ADD COLUMN legal_category TEXT');
+      }
+      if (!cols.some((c) => c.name === 'legal_published_on')) {
+        this.db.exec('ALTER TABLE documents ADD COLUMN legal_published_on TEXT');
+      }
+      if (!cols.some((c) => c.name === 'word_count')) {
+        this.db.exec('ALTER TABLE documents ADD COLUMN word_count INTEGER NOT NULL DEFAULT 0');
+      }
+    }
+
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_documents_course ON documents(course_id, kind, status)');
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_documents_owner ON documents(owner_id, kind)');
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_documents_textbook ON documents(textbook_id, chapter_no)');
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_documents_legal ON documents(legal_category, sort_order)');
+    this.db.exec(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_documents_legal_slug ON documents(legal_slug) WHERE legal_slug IS NOT NULL',
+    );
   }
 
   /** 一次性初始化标记：键存在即视为已完成 */

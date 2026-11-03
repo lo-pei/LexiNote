@@ -26,6 +26,9 @@ enum DocStatus {
 enum DocKind {
   COURSEWARE
   NOTE
+  TEXTBOOK
+  /// 英文法律篇目：只读，按部门法归拢成「英文法律专题」
+  LAW
 }
 
 enum SidebarType {
@@ -88,19 +91,52 @@ model Document {
   ownerId     String
   courseId    String?
   parentDocId String?
+  /// 教材章节所属书目；kind = TEXTBOOK 时非空
+  textbookId  String?
+  /// 教材章节序号，决定目录顺序
+  chapterNo   Int?
+  /// 英文法律篇目标识，作阅读页地址；kind = LAW 时非空
+  legalSlug   String?    @unique
+  /// 英文法律篇目所属部门法分类代码（01–07）
+  legalCategory String?
+  /// 英文法律篇目的官网发布/更新日期
+  legalPublishedOn String?
   title       String
   subtitle    String?
   content     Json
   status      DocStatus  @default(DRAFT)
   kind        DocKind    @default(NOTE)
   sortOrder   Int        @default(0)
+  /// 教材与法律篇目的字数，导入时物化
+  wordCount   Int        @default(0)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   deletedAt   DateTime?
   snapshots   DocumentSnapshot[]
   sidebar     SidebarItem[]
+  textbook    Textbook?  @relation(fields: [textbookId], references: [id])
 
   @@index([courseId, kind, status])
+  @@index([textbookId, chapterNo])
+  @@index([legalCategory, sortOrder])
+}
+
+/// 教材书目：一本书一行，章节正文存于 Document（kind = TEXTBOOK）
+model Textbook {
+  id          String     @id @default(uuid())
+  title       String
+  subtitle    String?
+  author      String
+  publisher   String
+  edition     String?
+  year        String?
+  isbn        String?
+  description String?
+  ownerId     String
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  chapters    Document[]
 }
 
 model DocumentSnapshot {

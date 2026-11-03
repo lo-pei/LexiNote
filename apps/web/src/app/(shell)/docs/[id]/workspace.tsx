@@ -225,8 +225,26 @@ export function DocumentWorkspace({ doc, user, wordbooks }: DocumentWorkspacePro
   return (
     <div className="wrap wrap--wide">
       <div className="doc__bar">
-        <Link className="ln-btn ln-btn--quiet ln-btn--sm" href={doc.courseId ? `/courses/${doc.courseId}` : '/library'}>
-          ← {doc.courseId ? '课程' : '我的文档'}
+        <Link
+          className="ln-btn ln-btn--quiet ln-btn--sm"
+          href={
+            doc.kind === 'LAW'
+              ? '/readings/laws'
+              : doc.kind === 'TEXTBOOK' && doc.textbookId
+                ? `/textbooks/${doc.textbookId}`
+                : doc.courseId
+                  ? `/courses/${doc.courseId}`
+                  : '/library'
+          }
+        >
+          ←{' '}
+          {doc.kind === 'LAW'
+            ? '英文法律专题'
+            : doc.kind === 'TEXTBOOK'
+              ? '教材目录'
+              : doc.courseId
+                ? '课程'
+                : '我的文档'}
         </Link>
         <span className="doc__bar-title">{doc.title}</span>
         <span className="doc__bar-spacer" />
@@ -417,8 +435,21 @@ export function DocumentWorkspace({ doc, user, wordbooks }: DocumentWorkspacePro
               <dd style={{ margin: 0 }}>{doc.ownerName}</dd>
               <dt className="muted">类型</dt>
               <dd style={{ margin: 0 }}>
-                {doc.kind === 'COURSEWARE' ? '课件' : '笔记'} · {doc.status === 'PUBLISHED' ? '已发布' : '草稿'}
+                {doc.kind === 'COURSEWARE'
+                  ? '课件'
+                  : doc.kind === 'TEXTBOOK'
+                    ? '教材'
+                    : doc.kind === 'LAW'
+                      ? '英文法律'
+                      : '笔记'}{' '}
+                · {doc.status === 'PUBLISHED' ? '已发布' : '草稿'}
               </dd>
+              {doc.kind === 'LAW' && doc.legalPublishedOn ? (
+                <>
+                  <dt className="muted">发布</dt>
+                  <dd style={{ margin: 0 }}>{doc.legalPublishedOn}</dd>
+                </>
+              ) : null}
               {doc.originTitle ? (
                 <>
                   <dt className="muted">来源</dt>

@@ -11,7 +11,14 @@ export type Role = (typeof ROLES)[number];
 export const DOC_STATUS = ['DRAFT', 'PUBLISHED'] as const;
 export type DocStatus = (typeof DOC_STATUS)[number];
 
-export const DOC_KIND = ['COURSEWARE', 'NOTE'] as const;
+/**
+ * 文档类型。
+ * - COURSEWARE 教师自建课件，挂课程，可发布
+ * - NOTE       个人笔记，含「课件纳入我的笔记库」的副本
+ * - TEXTBOOK   教材章节，正文只读，按 textbooks 表归拢成书
+ * - LAW        英文法律篇目，正文只读，按部门法分类归拢成「英文法律专题」
+ */
+export const DOC_KIND = ['COURSEWARE', 'NOTE', 'TEXTBOOK', 'LAW'] as const;
 export type DocKind = (typeof DOC_KIND)[number];
 
 export const SIDEBAR_TYPES = ['EXTENSION', 'ARTICLE', 'TEACHER_NOTE'] as const;
@@ -104,6 +111,8 @@ export interface Course {
   description: string | null;
   term: string | null;
   createdAt: string;
+  /** 创建课程时若顺带建班，回传生成的班级码，便于当场告知学生 */
+  joinCode?: string | null;
 }
 
 export interface Enrollment {
@@ -139,8 +148,86 @@ export interface DocumentRecord {
   content: TiptapDoc;
   status: DocStatus;
   kind: DocKind;
+  /** 教材章节所属书目；kind 为 TEXTBOOK 时非空 */
+  textbookId?: string | null;
+  /** 教材章节序号，决定目录顺序（前言为 0，附录从 900 起） */
+  chapterNo?: number | null;
+  /** 英文法律篇目标识；kind 为 LAW 时非空，用作阅读页地址 */
+  legalSlug?: string | null;
+  /** 英文法律篇目所属部门法分类代码（01–07） */
+  legalCategory?: string | null;
+  /** 英文法律篇目的官网发布/更新日期 */
+  legalPublishedOn?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** 教材书目：一本书一行，章节正文另存于 documents */
+export interface Textbook {
+  id: string;
+  title: string;
+  /** 外文书名或英文副题 */
+  subtitle: string | null;
+  author: string;
+  publisher: string;
+  /** 版次说明，如「第四版」 */
+  edition: string | null;
+  year: string | null;
+  isbn: string | null;
+  description: string | null;
+  /** 总章数（含前言与附录） */
+  chapterCount: number;
+  wordCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** 教材目录项：只取渲染目录需要的字段，不带正文 */
+export interface TextbookChapter {
+  id: string;
+  chapterNo: number;
+  title: string;
+  subtitle: string | null;
+  words: number;
+}
+
+export interface TextbookDetail extends Textbook {
+  chapters: TextbookChapter[];
+}
+
+/** 英文法律专题：按部门法分类的一级目录 */
+export interface LawCategory {
+  /** 分类代码，与全国人大英文法律库一致（01–07） */
+  code: string;
+  /** 分类英文名，如 Constitution and Related Laws */
+  title: string;
+  /** 分类中文名 */
+  titleZh: string;
+  /** 这一类收什么、为什么归在一起 */
+  note: string;
+  docCount: number;
+  wordCount: number;
+}
+
+/** 专题目录里的单篇法律（不含正文） */
+export interface LawEntry {
+  id: string;
+  /** 阅读页地址用的标识 */
+  slug: string;
+  title: string;
+  /** 官网标注的发布/更新日期 */
+  publishedOn: string | null;
+  words: number;
+}
+
+export interface LawCategoryDetail extends LawCategory {
+  entries: LawEntry[];
+}
+
+export interface LawLibrary {
+  categories: LawCategoryDetail[];
+  totalDocs: number;
+  totalWords: number;
 }
 
 export interface DocumentWithMeta extends DocumentRecord {

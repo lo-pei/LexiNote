@@ -22,6 +22,8 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
       { href: '/library', label: '我的文档', match: (p) => p.startsWith('/library') || p.startsWith('/docs') },
       { href: '/wordbooks', label: '生词本', match: (p) => p.startsWith('/wordbooks') },
       { href: '/forum', label: '讨论区', match: (p) => p.startsWith('/forum') },
+      // 教材可直接精读，排在纯书目的「推荐阅读」之前
+      { href: '/textbooks', label: '教材', match: (p) => p.startsWith('/textbooks') },
       // 推荐阅读排在导航末位
       { href: '/readings', label: '推荐阅读', match: (p) => p.startsWith('/readings') },
     ],

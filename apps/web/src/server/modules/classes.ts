@@ -34,6 +34,17 @@ function uniqueJoinCode(): string {
   throw badRequest('班级码生成失败，请重试。');
 }
 
+/**
+ * 对外发放班级码。
+ *
+ * 新建课程的「授课班级」允许教师直接填班名，班名不承载唯一性，
+ * 班级码才是学生入班的凭据，所以由服务端生成而不是让教师自己起——
+ * 两处入口（班级页 / 建课表单）用同一套字符集与查重逻辑。
+ */
+export function nextJoinCode(): string {
+  return uniqueJoinCode();
+}
+
 interface ClassRow {
   id: string;
   teacher_id: string;
@@ -473,6 +484,40 @@ export function leaveClass(user: SessionUser, classId: string): void {
   const row = requireClassRow(classId, user);
   if (row.teacher_id === user.id) throw badRequest('建班教师不能退出自己的班级。');
   getDb().run('DELETE FROM class_members WHERE class_id = ? AND user_id = ?', classId, user.id);
+}
+
+export interface DissolveResult {
+  id: string;
+  name: string;
+  /** 被解绑的课程数：课程本身保留，只是不再属于任何教学班 */
+  detachedCourses: number;
+  removedMembers: number;
+}
+
+/**
+ * 解散班级。
+ *
+ * 处置口径与「移出成员」「退出班级」一致：只拆组织关系，不删教学内容。
+ * 班里的课程解绑后变成面向全体学生的开放课程，学生的选课记录与笔记照旧，
+ * 避免一次误点连带清掉一学期的课件与作业。成员、邀请一并清掉，班级码随之失效。
+ */
+export function dissolveClass(user: SessionUser, classId: string): DissolveResult {
+  const row = requireClassRow(classId, user);
+  if (row.teacher_id !== user.id) throw forbidden('只有建班教师可以解散班级。');
+
+  const db = getDb();
+  return db.transaction(() => {
+    db.run('UPDATE courses SET class_id = NULL WHERE class_id = ?', classId);
+    db.run('DELETE FROM class_invites WHERE class_id = ?', classId);
+    const members = db.run('DELETE FROM class_members WHERE class_id = ?', classId);
+    db.run('DELETE FROM classes WHERE id = ?', classId);
+    return {
+      id: row.id,
+      name: row.name,
+      detachedCourses: Number(row.course_count ?? 0),
+      removedMembers: Number(members.changes ?? 0),
+    };
+  });
 }
 
 export function classOptions(user: SessionUser): { id: string; name: string; term: string | null }[] {

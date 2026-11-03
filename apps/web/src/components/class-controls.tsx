@@ -216,8 +216,7 @@ export function RemoveMember({ classId, userId, name }: { classId: string; userI
   );
 }
 
-export function LeaveClass({ classId }: { classId: string }) {
-  const router = useRouter();
+export function LeaveClass({ classId }: { classId: string }) {  const router = useRouter();
   const [busy, setBusy] = useState(false);
 
   const run = async () => {
@@ -236,6 +235,60 @@ export function LeaveClass({ classId }: { classId: string }) {
   return (
     <button type="button" className="ln-btn ln-btn--quiet ln-btn--sm" onClick={run} disabled={busy}>
       {busy ? '退出中…' : '退出班级'}
+    </button>
+  );
+}
+
+/* ── 解散班级 ───────────────────────────────────────────── */
+
+/**
+ * 解散班级。
+ *
+ * 只为建班教师开放，且要求把班名原样敲一遍——这个动作不可撤销，
+ * 单靠一个 confirm 拦不住手滑。处置口径与服务端一致：课程解绑保留、
+ * 学生学习记录保留，只清掉成员关系与邀请。
+ */
+export function DisbandClass({
+  classId,
+  name,
+  memberCount,
+  courseCount,
+}: {
+  classId: string;
+  name: string;
+  memberCount: number;
+  courseCount: number;
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+
+  const run = async () => {
+    const typed = window.prompt(
+      `解散「${name}」不可撤销。\n\n` +
+        `· ${memberCount} 名成员会被移出这个班\n` +
+        `· ${courseCount} 门课程解除班级归属，课程内容与学生的选课记录、笔记都保留\n\n` +
+        `确认请输入班级名称：`,
+      '',
+    );
+    if (typed === null) return;
+    if (typed.trim() !== name.trim()) {
+      window.alert('班级名称不一致，已取消。');
+      return;
+    }
+    setBusy(true);
+    try {
+      await api(`/api/classes/${classId}`, { method: 'DELETE' });
+      router.push('/classes');
+      router.refresh();
+    } catch (cause) {
+      window.alert(errorMessage(cause));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button type="button" className="ln-btn ln-btn--danger ln-btn--sm" onClick={run} disabled={busy}>
+      {busy ? '解散中…' : '解散班级'}
     </button>
   );
 }

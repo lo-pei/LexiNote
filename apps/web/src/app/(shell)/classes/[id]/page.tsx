@@ -4,7 +4,7 @@ import type { ClassDetail, SessionUser } from '@ln/types';
 import { formatDate } from '@ln/utils';
 import { requirePageUser } from '@/lib/session';
 import { getClassDetail } from '@/server/modules/classes';
-import { ClassCodePanel, InvitePanel, LeaveClass, RemoveMember } from '@/components/class-controls';
+import { ClassCodePanel, DisbandClass, InvitePanel, LeaveClass, RemoveMember } from '@/components/class-controls';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,9 +51,17 @@ export default async function ClassDetailPage({ params }: { params: { id: string
         <div className="head__actions">
           <span className="ln-badge">{klass.teacherName} 老师</span>
           {isOwner ? (
-            <Link className="ln-btn ln-btn--outline ln-btn--sm" href="/">
-              课程管理
-            </Link>
+            <>
+              <Link className="ln-btn ln-btn--outline ln-btn--sm" href="/">
+                课程管理
+              </Link>
+              <DisbandClass
+                classId={klass.id}
+                name={klass.name}
+                memberCount={klass.memberCount}
+                courseCount={klass.courseCount}
+              />
+            </>
           ) : (
             <LeaveClass classId={klass.id} />
           )}

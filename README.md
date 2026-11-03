@@ -10,7 +10,7 @@
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=nextdotjs&logoColor=white)
 ![Tiptap](https://img.shields.io/badge/Tiptap-2-0D1B2A)
 ![SQLite](https://img.shields.io/badge/SQLite-node%3Asqlite-003B57?logo=sqlite&logoColor=white)
-![Pages](https://img.shields.io/badge/Pages-19-4B8BBE)
+![Pages](https://img.shields.io/badge/Pages-22-4B8BBE)
 ![API](https://img.shields.io/badge/API-35%20routes-informational)
 ![Glossary](https://img.shields.io/badge/Glossary-2%2C208%20terms-2ea44f)
 ![Stage](https://img.shields.io/badge/Stage-%E6%95%99%E5%AD%A6%E5%8F%AF%E7%94%A8-brightgreen)
@@ -47,7 +47,7 @@ LexiNote 做的事只有一件：**让同一份法律英语课件，在课堂投
 
 ### 1.2 技术面貌
 
-`Next.js 14 App Router` · `Tiptap 2` · `node:sqlite` · `jose` · `zod` · `exceljs / docx` · 19 个页面 · 35 个接口 · 21 张表 · 约 1.13 万行 TypeScript
+`Next.js 14 App Router` · `Tiptap 2` · `node:sqlite` · `jose` · `zod` · `exceljs / docx` · 25 个页面 · 37 个接口 · 22 张表 · 约 1.4 万行 TypeScript
 
 ---
 
@@ -100,14 +100,16 @@ LexiNote 做的事只有一件：**让同一份法律英语课件，在课堂投
 
 | 能力 | 说明 |
 | :--- | :--- |
-| **课程与班级** | 教师建课、建班；班级码 6 位（字符集去掉 `0/O/1/I`），可重置、可关闭自助加入；支持邀请链接（可设次数与有效期）；学生入班自动选修该班课程，幂等 |
+| **课程与班级** | 教师建课、建班；建课时「授课班级」既可从已有班级里挑，也可直接填班名当场建班（服务端发 6 位码，同名班级自动复用，不重复建）。班级码字符集去掉 `0/O/1/I`，可重置、可关闭自助加入；支持邀请链接（可设次数与有效期）；学生入班自动选修该班课程，幂等。班级可由建班教师**解散**：课程解绑保留、学生选课与笔记不动，只清掉成员关系与邀请 |
+| **教材库** | 课程所用教材按讲次导入，`/textbooks` 书架 → 单本目录 → 章节阅读三跳。章节是 `documents` 里的 `TEXTBOOK` 类型，正文只读，直接复用阅读工作台的术语、译文、生词与演示；读书目元信息存在独立的 `textbooks` 表 |
+| **英文法律专题** | 中国现行法律的英文官方译本按部门法分 7 类归档，`/readings` 下方专题入口 → `/readings/laws` 目录 → 单篇阅读。篇目是 `documents` 里的 `LAW` 类型（154 篇、约 71 万词），同样只读并复用阅读工作台；目录页可按法名检索、按类收起，分类内按官网发布日排序 |
 | **阅读工作台** | 阅读 / 编辑 / 演示三态。术语点开有注音与释义，可一键收进生词本；「对照译文」按句匹配；右侧目录吸顶 66px 并独立滚动，滚正文时不被顶栏遮住 |
 | **悬浮工具条** | 有选区时贴选区上方（贴顶落下方），无选区停在视口底部，可折成右下角 `Aa` 圆钮；按钮 `mousedown` 拦截，点按钮不丢选区 |
 | **整屏演示** | 纸面铺满视口，字号随投影视口缩放；浮层 2.6 秒无操作淡出；`F` 进浏览器全屏、`Esc` 先退全屏再退演示；`?p=3` 从第 N 屏进入 |
 | **生词本** | 每人两个默认词表：**自定义单词本**（空）+ **法律英语单词本**（内置 2,208 条）；四档掌握度；服务端分页 40 条/页、搜索、A–Z 字母索引；导出 xlsx / docx / 打印 PDF |
 | **讨论与批注** | 提问与作业分开建帖；教师可在回复上写批注、打分、标记参考答案；回复计入学习记录与学情活跃度 |
 | **学情** | 选课人数、课件数、译文命中率、未掌握词数、学生明细、术语热度；未掌握词只统计自建词表，不被内置词库稀释 |
-| **课程安排** | 本学期专题与配套案例（含案号出处）、上课周次、课程代码；右侧推荐阅读栏收录 10 种教材，可按书名 / 作者 / 出版社 / **ISBN（可省连字符）** 检索 |
+| **课程安排** | 本学期专题与配套案例（含案号出处）、上课周次、课程代码；右侧推荐阅读栏收录 10 种教材，可按书名 / 作者 / 出版社 / **ISBN（可省连字符）** 检索。同一页下半部分是**英文法律专题**的 7 类入口，点进去按目录读全文 |
 | **隐私政策与使用条款** | `/privacy` 与 `/terms` 为公开路由（不登录可读），正文按「汉字序号 + 1.1 式条款」分条撰写，左侧点状目录随滚动高亮、右下角回到顶部；登录页页面底栏与每页右下角均有入口；登录后 `/help` 是完整七节操作手册 |
 | **导出** | 同一份 `WordbookExportDTO` 喂三个渲染器：exceljs（xlsx）、docx（Word）、打印样式（PDF） |
 
@@ -149,6 +151,8 @@ Windows 上也可以双击 **`打开平台.cmd`**：先探测 3100 端口，没�
 | `npm run db:seed` | 重建数据库并灌演示数据 |
 | `npm run launch` | 探端口 → 需要就拉起 dev → 轮询就绪 → 打开登录页 |
 | `node tooling/scripts/extract-glossary.mjs <xlsx>` | 把术语表 xlsx 抽成内置词库 JSON |
+| `npm run textbook:import -- hejia` | 导入教材分讲 Markdown（`--no-terms` 关闭术语标注） |
+| `npm run laws:import` | 导入英文法律 Markdown（默认读 `D:/A项目/npc-laws-en`；`--only 02` 只导一类，`--no-terms` 关闭术语标注） |
 
 > `next build` 偶发 `EPERM .next\trace`：先 `mkdir -p apps/web/.next && printf x > apps/web/.next/trace` 再构建即可。删 `.next` 时若被进程占用，改成 `mv .next .next-stale` 再构建。
 
@@ -195,6 +199,8 @@ Windows 上也可以双击 **`打开平台.cmd`**：先探测 3100 端口，没�
 
 - **课程安排**：照 `data/course-plan.local.json` 的字段结构填写即可；文件缺失时页面退回仓库自带的示例安排，不会报错。
 - **术语表**：`node tooling/scripts/extract-glossary.mjs <你的 xlsx 路径>` 生成；文件缺失时内置词库整套跳过，生词本只剩「自定义单词本」，其余功能不受影响。
+- **教材正文**：`npm run textbook:import` 把分讲 Markdown 转成 Tiptap 写进 `data/lexinote.db`，**不进仓库**（版权原因）。`data/` 与教材 Markdown 源目录都在版本控制之外，换部署机需要重跑一次导入。书目元信息写在 `tooling/scripts/import-textbook.mts` 的 `BOOKS` 里，可复现。
+- **英文法律正文**：`npm run laws:import` 读本机归档目录 `npc-laws-en/`（154 份 Markdown，按 `01`–`07` 分部门法），剔除官网页面残留的 `Contents` 目录块后写入 `documents`（`kind = 'LAW'`）。分类骨架（名称、顺序、说明）在 `apps/web/src/server/content/legal-library.ts`，不建表。源目录同样在版本控制之外；换机器需先自备归档或改脚本里的默认路径。
 - **隐私政策**：`/privacy` 按本项目的实际实现撰写（scrypt 加盐散列、httpOnly 会话 Cookie、数据只落本机、无第三方统计与广告）。部署到自己的环境前，请核对「谁在处理你的数据」「联系」两节是否与事实一致。
 - **备份**：`.db` 与 `-wal` / `-shm` 必须一起复制；只拷主库会丢掉最近的写入。
 - **提交前自查**：`git grep 教师姓名\|教室\|课程代码` 应为 0 命中。
@@ -206,7 +212,7 @@ Windows 上也可以双击 **`打开平台.cmd`**：先探测 3100 端口，没�
 ```text
 apps/web                  Next.js 应用
   src/app                 页面与接口
-    (shell)               登录后的外壳：课程 / 课程安排 / 班级 / 文档 / 生词本 / 讨论 / 学情 / 使用说明
+    (shell)               登录后的外壳：课程 / 课程安排 / 班级 / 文档 / 生词本 / 讨论 / 教材 / 推荐阅读（含英文法律专题）/ 学情 / 使用说明
     (public)              公开页：隐私政策 /privacy、使用说明 /terms（不进 URL）
     login · register      登录与注册
     join/[token]          邀请落地页
@@ -214,7 +220,7 @@ apps/web                  Next.js 应用
   src/server              服务端模块
     auth.ts               会话签发与校验（jose + httpOnly Cookie）
     db.ts                 SQLite 适配器与自写迁移
-    modules/              accounts · classes · courses · documents · vocabulary
+    modules/              accounts · classes · courses · documents · textbooks · laws · vocabulary
                           · forum · analytics · translation · exports · events · skill
     content/              推荐书目 readings.ts、课程安排 plan.ts
   src/components          16 个界面组件（悬浮工具条、术语卡、班级控件、推荐阅读栏…）
@@ -244,9 +250,9 @@ curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3100/login
 | 保障项 | 机制 |
 | :--- | :--- |
 | 类型 | `tsc --noEmit` 全仓 strict，含 `packages/*`；`next build` 会再过一遍 |
-| 构建 | `next build` 通过，19 个页面与 35 个接口全部登记进路由表 |
-| 接口实测 | 学号登录（Cookie 30 天）、注册带班入班（`enrolledCourses=1`）、重复学号 400、弱口令 400、重置班级码后旧码失效、学生越权移除成员 403、直选挂班课程 403、xlsx / docx / PDF 导出字节正常 |
-| 页面巡检 | 教师与学生两个视角逐页请求，学生视角确认无「学情」「维护者」入口 |
+| 构建 | `next build` 通过，25 个页面与 37 个接口全部登记进路由表 |
+| 接口实测 | 学号登录（Cookie 30 天）、注册带班入班（`enrolledCourses=1`）、重复学号 400、弱口令 400、重置班级码后旧码失效、学生越权移除成员 403、直选挂班课程 403、xlsx / docx / PDF 导出字节正常；建课自填班名回传班级码且同名复用同一 `classId`；解散班级后 `detachedCourses` 计数正确、课程解绑保留、班级 404；英文法律学生与教师保存均 403 |
+| 页面巡检 | 教师与学生两个视角逐页请求，学生视角确认无「学情」「维护者」入口；教材章节另测「章节不属于该书必 404」与「非所有者保存必 403」；英文法律篇目按 slug 直取 404 兜底，教材与法律均不出现在「我的文档」 |
 | 视觉核对 | 无头 Edge 截图逐页放大看：品牌与副标挤行、卡片留洞、按钮被 flex 拉满、目录被顶栏遮住、邀请链接截断等均在截图阶段发现并修掉 |
 | 数据自洽 | 生词本条数、班级人数、学情未掌握词均由 SQL 现算，不存冗余计数 |
 
@@ -264,6 +270,10 @@ curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3100/login
 | **版本** | 快照与 `diff` 接口已具备（`/api/documents/[id]/snapshots`、`/diff`），**尚无对比界面** |
 | **学情** | 有班级与课程维度的汇总与学生明细，**没有单个学生的阅读轨迹**（读了哪些文档、停留多久） |
 | **内置词库** | 从自备 xlsx 抽取，清洗时丢弃了纯序号行与 OCR 残行；仍可能残留个别错拼，遇到请以教材为准 |
+| **教材术语标注** | 导入时按内置词库自动标注，规则是「多词术语全收 + 单词术语要求唯一释义、长度≥5、非常用词」，约每 100 词 6 处。词库本身含 will（遗嘱/助动词）、but（but-for test 截断条目）、There（释义与词形不符）这类同形或残缺条目，全量标注会造成明显误导，因此宁可少标。个别多义泛词（information / question / interest）仍可能标在非法律语境上 |
+| **教材覆盖** | 首批只导入何家弘《法律英语》第四版 25 篇；张法连上下册的 Markdown 已整理但尚未入库，在 `BOOKS` 里补一条并重跑导入即可 |
+| **英文法律译本** | 正文取自全国人大官网英文版，官网标为 Translation for Reference Only：**译本供参考，不具法律效力**，引用条文以中文正式文本为准。归档时间为 2026-11-02，此后新修法需重跑 `laws:import` |
+| **法律篇目结构** | 154 篇里有 65 篇是「决定 / 办法」这类无章节的短文本，右侧目录为空属正常；另有少数长篇的官网译本本身缺少 `Chapter` 标记（如刑法分则部分章节），目录项会少于条文实际分章 |
 | **并发** | 单机单进程设计，`node:sqlite` 无连接池；多实例部署前需换数据库与锁方案 |
 | **移动端** | 只保证可读；演示态按桌面投屏（16:9）设计，手机竖屏不适合投屏分屏 |
 | **学术边界** | 只做阅读辅助与讨论，不提供代写、自动答题或成绩判定 |

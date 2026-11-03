@@ -421,6 +421,44 @@ input,
   padding-right: 30px;
 }
 
+/* 二选一的分段控件：「选已有班级 / 自填班级名」这类互斥填法 */
+.seg {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.seg__item {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--ink-3);
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  line-height: 28px;
+  cursor: pointer;
+  transition: color var(--fast), border-color var(--fast), background var(--fast);
+}
+
+.seg__item:hover {
+  color: var(--ink-2);
+  border-color: var(--ink-4);
+}
+
+.seg__item.is-on {
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  background: var(--accent-wash);
+  font-weight: 500;
+}
+
+.seg__item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 /* ── 弹窗（新建课程等） ─────────────────────────────────── */
 
 .modal {
@@ -4602,5 +4640,228 @@ input,
 @media (max-width: 860px) {
   .ln-hint--nowrap {
     white-space: normal;
+  }
+}
+
+/* ── 英文法律专题：推荐阅读页的分类入口 ─────────────────── */
+
+.lawtile-wrap {
+  margin-top: 46px;
+}
+
+.lawtile__lead {
+  max-width: 68ch;
+  margin: 0 0 18px;
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--ink-3);
+}
+
+.lawtile__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(226px, 1fr));
+  gap: 12px;
+}
+
+.lawtile {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 16px 18px 14px;
+  border: 1px solid var(--rule-soft);
+  border-radius: 2px;
+  background: var(--paper);
+  text-decoration: none;
+  transition: border-color var(--fast), background var(--fast);
+}
+
+.lawtile:hover {
+  border-color: var(--accent);
+  background: var(--paper-2);
+}
+
+.lawtile__code {
+  font-family: var(--font-read);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.lawtile__zh {
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.lawtile__en {
+  font-family: var(--font-read);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+.lawtile__meta {
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 英文法律专题：目录页 ───────────────────────────────── */
+
+.lawc__jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.lawc__chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px 11px;
+  border: 1px solid var(--rule-soft);
+  border-radius: 999px;
+  background: var(--paper);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: border-color var(--fast), color var(--fast);
+}
+
+.lawc__chip b {
+  font-family: var(--font-read);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.lawc__chip span {
+  font-size: 11px;
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+}
+
+.lawc__chip:hover {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.lawc {
+  margin-top: 8px;
+}
+
+.lawc__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0 4px;
+}
+
+.lawc__search {
+  max-width: 460px;
+}
+
+.lawc__hint {
+  font-size: 12px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.lawc__cat {
+  padding: 20px 0 6px;
+  border-top: 1px solid var(--rule-soft);
+  scroll-margin-top: 88px;
+}
+
+.lawc__cathead {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: start;
+}
+
+.lawc__code {
+  font-family: var(--font-read);
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.lawc__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  font-size: 16.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.lawc__en {
+  font-family: var(--font-read);
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+.lawc__note {
+  max-width: 64ch;
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--ink-3);
+}
+
+.lawc__catmeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lawc__count {
+  font-size: 12px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.lawc__list {
+  margin-top: 10px;
+}
+
+.lawc__item {
+  padding: 10px 4px;
+}
+
+/* 篇目名称是英文法名，走衬线；否则落到中文字体，撇号会按全宽排，看着像多了一个空格 */
+.lawc__item .row__title {
+  font-family: var(--font-read);
+  font-size: 14.5px;
+  line-height: 1.45;
+}
+
+.lawc__empty {
+  padding: 28px 0;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+@media (max-width: 860px) {
+  .lawtile__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .lawc__cathead {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+
+  .lawc__catmeta {
+    grid-column: 2;
+    justify-content: flex-start;
   }
 }

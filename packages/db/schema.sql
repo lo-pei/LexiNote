@@ -86,23 +86,52 @@ CREATE TABLE IF NOT EXISTS enrollments (
   UNIQUE (student_id, course_id)
 );
 
+-- 教材书目：一本书一行。章节正文仍存 documents（kind = 'TEXTBOOK'），
+-- 用 documents.textbook_id 归拢，避免为大部头教材另建一套渲染链路。
+CREATE TABLE IF NOT EXISTS textbooks (
+  id          TEXT PRIMARY KEY,
+  title       TEXT NOT NULL,
+  subtitle    TEXT,
+  author      TEXT NOT NULL,
+  publisher   TEXT NOT NULL,
+  edition     TEXT,
+  year        TEXT,
+  isbn        TEXT,
+  description TEXT,
+  owner_id    TEXT NOT NULL REFERENCES users(id),
+  sort_order  INTEGER NOT NULL DEFAULT 0,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS documents (
   id            TEXT PRIMARY KEY,
   owner_id      TEXT NOT NULL REFERENCES users(id),
   course_id     TEXT REFERENCES courses(id),
   parent_doc_id TEXT REFERENCES documents(id),
+  textbook_id   TEXT REFERENCES textbooks(id),
+  chapter_no    INTEGER,
+  -- 英文法律篇目：分类代码、篇目标识、官网发布/更新日期，归拢成「英文法律专题」目录
+  legal_slug    TEXT,
+  legal_category TEXT,
+  legal_published_on TEXT,
   title         TEXT NOT NULL,
   subtitle      TEXT,
   content       TEXT NOT NULL,
   status        TEXT NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','PUBLISHED')),
-  kind          TEXT NOT NULL DEFAULT 'NOTE' CHECK (kind IN ('COURSEWARE','NOTE')),
+  kind          TEXT NOT NULL DEFAULT 'NOTE' CHECK (kind IN ('COURSEWARE','NOTE','TEXTBOOK','LAW')),
   sort_order    INTEGER NOT NULL DEFAULT 0,
+  -- 教材章节与法律篇目的字数，导入时物化一次。正文只读不改，物化不会失效；
+  -- 若在目录页逐篇解析 JSON 现算，一本 22 章的教材要解析七十余万字。
+  word_count    INTEGER NOT NULL DEFAULT 0,
   created_at    TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
   deleted_at    TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_documents_course ON documents(course_id, kind, status);
 CREATE INDEX IF NOT EXISTS idx_documents_owner ON documents(owner_id, kind);
+-- idx_documents_textbook / idx_documents_legal 建在 db.ts 的 migrate() 里：
+-- 老库的 documents 表要先重建出这些列，本文件是整段 exec，索引跑到前面会整体失败。
 
 CREATE TABLE IF NOT EXISTS document_snapshots (
   id          TEXT PRIMARY KEY,
