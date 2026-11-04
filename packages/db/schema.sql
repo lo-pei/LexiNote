@@ -117,6 +117,8 @@ CREATE TABLE IF NOT EXISTS documents (
   legal_published_on TEXT,
   title         TEXT NOT NULL,
   subtitle      TEXT,
+  -- 课件列表的分组标题（如「Topic 2 · 宪法解释」），空则按平铺列表显示
+  section_label TEXT,
   content       TEXT NOT NULL,
   status        TEXT NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','PUBLISHED')),
   kind          TEXT NOT NULL DEFAULT 'NOTE' CHECK (kind IN ('COURSEWARE','NOTE','TEXTBOOK','LAW')),
@@ -277,4 +279,82 @@ CREATE TABLE IF NOT EXISTS dev_logs (
   decisions  TEXT NOT NULL,
   status     TEXT NOT NULL,
   sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+/* ── AI 辅助（方案 docs/AI-功能实施方案.md）────────────────────
+   AI 只产草稿，人审才入库；日志只记长度不记原文。
+   status 的取值合法性交给应用层校验，不加 CHECK——
+   本项目已有 documents.kind 因 CHECK 需重建整表的先例。        */
+
+-- 用量与失败率：只看成本与稳定性，不含任何原文
+CREATE TABLE IF NOT EXISTS ai_task_log (
+  id           TEXT PRIMARY KEY,
+  task         TEXT NOT NULL,
+  model        TEXT,
+  user_id      TEXT,
+  ref_id       TEXT,
+  ok           INTEGER NOT NULL DEFAULT 1,
+  latency_ms   INTEGER,
+  prompt_chars INTEGER,
+  output_chars INTEGER,
+  error        TEXT,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_ai_log_task ON ai_task_log(task, created_at DESC);
+
+-- 术语语境释义草稿：同句同词只生成一次，审过才迁入 vocabulary_entries
+CREATE TABLE IF NOT EXISTS ai_term_suggestions (
+  id            TEXT PRIMARY KEY,
+  term          TEXT NOT NULL,
+  context_hash  TEXT NOT NULL,
+  sentence      TEXT NOT NULL,
+  phonetic      TEXT,
+  definition_zh TEXT NOT NULL,
+  example       TEXT,
+  legal_domain  TEXT,
+  status        TEXT NOT NULL DEFAULT 'AI_DRAFT',
+  entry_id      TEXT REFERENCES vocabulary_entries(id),
+  model         TEXT,
+  created_by    TEXT REFERENCES users(id),
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (term, context_hash)
+);
+CREATE INDEX IF NOT EXISTS idx_ai_term_status ON ai_term_suggestions(status, created_at DESC);
+
+-- 生词复习排期：SM-2 纯规则，模型只出题干、不决定「你会不会」
+CREATE TABLE IF NOT EXISTS review_schedules (
+  id            TEXT PRIMARY KEY,
+  user_id       TEXT NOT NULL REFERENCES users(id),
+  item_id       TEXT NOT NULL REFERENCES wordbook_items(id),
+  due_on        TEXT NOT NULL,
+  interval_days INTEGER NOT NULL DEFAULT 1,
+  ease          REAL    NOT NULL DEFAULT 2.5,
+  reps          INTEGER NOT NULL DEFAULT 0,
+  lapses        INTEGER NOT NULL DEFAULT 0,
+  last_grade    INTEGER,
+  updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (user_id, item_id)
+);
+CREATE INDEX IF NOT EXISTS idx_review_due ON review_schedules(user_id, due_on);
+
+-- 复习题干缓存：同一个词只生成一次，全班共用
+CREATE TABLE IF NOT EXISTS review_questions (
+  id         TEXT PRIMARY KEY,
+  item_id    TEXT NOT NULL REFERENCES wordbook_items(id),
+  kind       TEXT NOT NULL,
+  payload    TEXT NOT NULL,
+  model      TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (item_id, kind)
+);
+
+-- 学情摘要：一天一份，避免重复调模型
+CREATE TABLE IF NOT EXISTS ai_digests (
+  id         TEXT PRIMARY KEY,
+  course_id  TEXT NOT NULL REFERENCES courses(id),
+  day        TEXT NOT NULL,
+  body       TEXT NOT NULL,
+  model      TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (course_id, day)
 );

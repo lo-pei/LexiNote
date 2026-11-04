@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { requirePageUser } from '@/lib/session';
 import { listDevLog, listSkills } from '@/server/modules/skill';
+import { countPendingDrafts } from '@/server/modules/ai/translation';
 import { SkillEditor } from '@/components/skill-editor';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,7 @@ export default async function AdminPage() {
 
   const logs = listDevLog();
   const skills = listSkills();
+  const pending = countPendingDrafts();
 
   return (
     <div className="wrap">
@@ -37,6 +39,9 @@ export default async function AdminPage() {
           <h1 className="head__title">维护者说明</h1>
         </div>
         <div className="head__actions">
+          <Link className="ln-btn ln-btn--outline ln-btn--sm" href="/admin/translations">
+            待审译文{pending > 0 ? `（${pending}）` : ''}
+          </Link>
           <Link className="ln-btn ln-btn--outline ln-btn--sm" href="/help">
             返回使用说明
           </Link>

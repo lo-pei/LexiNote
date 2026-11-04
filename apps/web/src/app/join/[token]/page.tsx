@@ -62,7 +62,7 @@ export default async function JoinPage({ params }: { params: { token: string } }
           <div className="landing__actions">
             <JoinButton token={invite.token} />
             <p className="ln-hint">
-              加入后自动选修该班已开设的 {invite.courseCount} 门课程；以后可从左侧「班级」进入。
+              加入后自动选修该班已开设的 {invite.courseCount} 门课程；以后从左侧「课程」进去就能看到。
             </p>
           </div>
         ) : (

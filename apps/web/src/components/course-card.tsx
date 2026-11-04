@@ -36,13 +36,21 @@ export function CourseCard({
         {action === 'enroll' ? (
           <EnrollButton courseId={course.id} />
         ) : action === 'class' ? (
-          <Link className="ln-btn ln-btn--outline ln-btn--sm" href="/classes">
+          <Link className="ln-btn ln-btn--outline ln-btn--sm" href="/#join">
             用班级码加入
           </Link>
         ) : (
-          <Link className="ln-btn ln-btn--outline ln-btn--sm" href={`/courses/${course.id}`}>
-            {action === 'manage' ? '管理课程' : '进入课程'}
-          </Link>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {/* 班级已并进课程页，学情在课程页里；给一条直达的路，省得进去再滚 */}
+            {action === 'manage' ? (
+              <Link className="ln-btn ln-btn--quiet ln-btn--sm" href={`/courses/${course.id}#analytics`}>
+                学情
+              </Link>
+            ) : null}
+            <Link className="ln-btn ln-btn--outline ln-btn--sm" href={`/courses/${course.id}`}>
+              {action === 'manage' ? '管理课程' : '进入课程'}
+            </Link>
+          </span>
         )}
       </div>
     </article>

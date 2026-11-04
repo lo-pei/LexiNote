@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AuthArt } from '@/components/auth-art';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { getSessionUser } from '@/server/auth';
 import { LoginForm } from './login-form';
 
@@ -26,6 +27,9 @@ export default async function LoginPage({
   return (
     <div className="gate">
       <AuthArt />
+      <div className="gate__theme">
+        <ThemeToggle compact />
+      </div>
       <section className="gate__formwrap">
         <div className="gate__stack">
           <LoginForm next={next} presetAccount={searchParams.account ?? ''} />

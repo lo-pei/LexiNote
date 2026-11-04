@@ -1,5 +1,7 @@
+import Link from 'next/link';
 import { requirePageUser } from '@/lib/session';
 import { listClasses } from '@/server/modules/classes';
+import { docRefs } from '@/server/modules/documents';
 import { getActivePlan } from '@/server/modules/teaching-plan';
 import {
   formatTopicDate,
@@ -10,7 +12,6 @@ import {
   topicState,
   type PlanProgram,
 } from '@/server/content/plan';
-import { PlanCourseware } from '@/components/plan-courseware';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: '课程安排 · LexiNote' };
@@ -24,9 +25,8 @@ function pickProgram(programs: PlanProgram[], classNames: string[]): PlanProgram
 
 export default async function PlanPage() {
   const user = await requirePageUser();
-  const { course, coursewares, activeId, topics: activeTopics, note, source } = getActivePlan();
+  const { course, topics: activeTopics, note, source } = getActivePlan();
   const today = todayISO();
-  const canPick = user.role !== 'STUDENT';
 
   // 学生只归属一个教学班，看到的课程代码、上课时间与日期都按本班算；
   // 教师与管理员看全部班级的对照信息
@@ -39,7 +39,12 @@ export default async function PlanPage() {
     date: mine ? shiftToWeekday(topic.date, mine.weekday) : topic.date,
   }));
 
-  const active = coursewares.find((item) => item.id === activeId) ?? coursewares[0];
+  // 专题与案例挂的课件 id 换成标题：读不到的（被删、被收回权限）自动不出现
+  const docIds = topics.flatMap((topic) => [
+    ...(topic.docs ?? []),
+    ...topic.cases.map((item) => item.doc).filter((id): id is string => Boolean(id)),
+  ]);
+  const titles = docRefs(docIds, user);
 
   const caseCount = topics.reduce((sum, topic) => sum + topic.cases.length, 0);
   const lectureCount = topics.filter((topic) => topic.kind === 'LECTURE').length;
@@ -73,9 +78,6 @@ export default async function PlanPage() {
       </span>
     ) : null,
   );
-  // 学生没有选择权，但要知道这学期按哪套课件上
-  addFact('授课课件', mine && active ? active.name : null);
-
   return (
     <div className="wrap wrap--wide">
       <header className="head">
@@ -90,24 +92,6 @@ export default async function PlanPage() {
 
       <div className="plan">
         <div className="plan__main">
-          {canPick && coursewares.length > 1 ? (
-            <section className="section">
-              <div className="section__head">
-                <h2 className="section__title">授课课件</h2>
-                <span className="section__hint">{coursewares.length} 套可选</span>
-              </div>
-              <PlanCourseware
-                options={coursewares.map((item) => ({
-                  id: item.id,
-                  name: item.name,
-                  summary: item.summary,
-                  count: item.topics.length,
-                }))}
-                activeId={activeId}
-              />
-            </section>
-          ) : null}
-
           <section className="section">
             <div className="section__head">
               <h2 className="section__title">课程信息</h2>
@@ -136,6 +120,9 @@ export default async function PlanPage() {
               {topics.map((topic) => {
                 const state = topicState(topic.date, today);
                 const dateLabel = formatTopicDate(topic.date);
+                const docs = (topic.docs ?? [])
+                  .map((id) => ({ id, title: titles.get(id)?.title }))
+                  .filter((item): item is { id: string; title: string } => Boolean(item.title));
                 return (
                   <li
                     className={`topic${state === 'upcoming' ? ' topic--upcoming' : ''}`}
@@ -165,16 +152,40 @@ export default async function PlanPage() {
                       {topic.summary ? <p className="topic__summary">{topic.summary}</p> : null}
                       {topic.cases.length ? (
                         <ul className="topic__cases">
-                          {topic.cases.map((item) => (
-                            <li key={item.name}>
-                              <span className="topic__case">{item.name}</span>
-                              {item.citation ? <span className="topic__cite">{item.citation}</span> : null}
-                            </li>
-                          ))}
+                          {topic.cases.map((item) => {
+                            const target = item.doc ? titles.get(item.doc) : undefined;
+                            return (
+                              <li key={item.name}>
+                                {target && item.doc ? (
+                                  <Link className="topic__case topic__case--link" href={`/docs/${item.doc}`}>
+                                    {item.name}
+                                  </Link>
+                                ) : (
+                                  <span className="topic__case">{item.name}</span>
+                                )}
+                                {item.citation ? <span className="topic__cite">{item.citation}</span> : null}
+                              </li>
+                            );
+                          })}
                         </ul>
                       ) : (
                         <p className="topic__summary">案例待定。</p>
                       )}
+                      <div className="topic__docs">
+                        <span className="topic__docs-label">课件</span>
+                        {docs.length ? (
+                          docs.map((doc) => (
+                            <Link className="topic__doc" href={`/docs/${doc.id}`} key={doc.id}>
+                              {doc.title}
+                              <span className="topic__doc-go" aria-hidden="true">
+                                →
+                              </span>
+                            </Link>
+                          ))
+                        ) : (
+                          <span className="topic__docs-empty">这一讲的课件还没上传</span>
+                        )}
+                      </div>
                     </div>
                   </li>
                 );

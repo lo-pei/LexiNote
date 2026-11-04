@@ -74,11 +74,56 @@ export function docToPlainText(doc: TiptapDoc | null | undefined): string {
   if (!doc) return '';
   const walk = (node: TiptapNode): string => {
     if (node.type === 'text') return node.text ?? '';
-    if (node.type === 'legalTerm') return node.text ?? '';
+    // 术语节点的可见文字在 content 里，node.text 通常为空；
+    // 只取 node.text 会让正文中的每个术语词整段消失（字数少算、导出缺词）。
+    if (node.type === 'legalTerm') {
+      return node.text ?? (node.content ?? []).map((child) => child.text ?? '').join('');
+    }
     const inner = (node.content ?? []).map(walk).join(node.type === 'paragraph' || node.type === 'heading' ? '' : '');
     return node.type === 'paragraph' || node.type === 'heading' ? `${inner}\n` : inner;
   };
   return (doc.content ?? []).map(walk).join('');
+}
+
+/** 检索正文里，正文与「术语释义区」的分隔符 */
+export const SEARCH_BODY_SEP = '\u0003';
+
+/**
+ * 检索用正文：在 docToPlainText 基础上补齐术语节点的中文释义。
+ *
+ * 术语在正文里显示为 "consideration"，中文释义存在 attrs.definition。
+ * 不纳入索引的话，学生搜「对价」找不到标注过对价的段落——而这正是最该命中的地方
+ * （实测某份课件 content 里有「对价」，纯文本里一次都搜不到）。
+ *
+ * 释义统一追加在 SEARCH_BODY_SEP 之后：片段生成时只从分隔符之前取窗口，
+ * 结果里才不会显示成一串术语表。
+ */
+export function searchTextOf(doc: TiptapDoc | null | undefined): string {
+  const plain = docToPlainText(doc);
+  if (!doc) return plain;
+
+  const pairs: string[] = [];
+  const seen = new Set<string>();
+  const walk = (node: TiptapNode): void => {
+    if (node.type === 'legalTerm') {
+      const attrs = node.attrs ?? {};
+      const word = (node.content ?? []).map((child) => child.text ?? '').join('') || (node.text ?? '');
+      const definition = typeof attrs.definition === 'string' ? attrs.definition : '';
+      const key = `${word}|${definition}`;
+      if ((word || definition) && !seen.has(key)) {
+        seen.add(key);
+        // 部分法条导入记录里 word 自带外层括号（注释段落被误标成术语），
+        // 拼完会出现「精髓。））」这种连续右括号。只规整索引文本，不动原文。
+        const unit = (definition ? `${word}（${definition}）` : word).replace(/）{2,}/g, '）');
+        pairs.push(unit);
+      }
+    }
+    (node.content ?? []).forEach(walk);
+  };
+  walk(doc);
+
+  if (!pairs.length) return plain;
+  return `${plain}\n${SEARCH_BODY_SEP}\n${pairs.join(' ')}`;
 }
 
 /* ── 日期 ─────────────────────────────────────────────────── */

@@ -137,7 +137,7 @@ export default async function WordbooksPage({
             </div>
 
             {items.length ? (
-              <div>
+              <div className="wb-list">
                 {items.map((item) => (
                   <div className="wb-item" key={item.id}>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -148,22 +148,23 @@ export default async function WordbooksPage({
                       </div>
                       <p className="wb-def">{item.entry.definitionZh}</p>
                       {item.sourceContext ? <p className="wb-ctx">{item.sourceContext}</p> : null}
-                      <p className="row__meta" style={{ marginTop: 6 }}>
-                        <span>
-                          {item.sourceDocId && item.sourceDocTitle ? (
-                            <Link href={`/docs/${item.sourceDocId}`} style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                              {item.sourceType === 'COURSE' ? '课件' : '笔记'} · {item.sourceDocTitle}
-                            </Link>
-                          ) : isGlossary ? (
-                            '内置术语表'
-                          ) : item.sourceType === 'MANUAL' ? (
-                            '手动添加'
-                          ) : (
-                            '课堂讨论'
-                          )}
-                        </span>
-                        {isGlossary ? null : <span>收录于 {formatDate(item.addedAt)}</span>}
-                      </p>
+                      {/* 内置词库的来源已在顶部说明里写过，逐条再标一次反而占地方 */}
+                      {isGlossary ? null : (
+                        <p className="row__meta" style={{ marginTop: 6 }}>
+                          <span>
+                            {item.sourceDocId && item.sourceDocTitle ? (
+                              <Link href={`/docs/${item.sourceDocId}`} style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                                {item.sourceType === 'COURSE' ? '课件' : '笔记'} · {item.sourceDocTitle}
+                              </Link>
+                            ) : item.sourceType === 'MANUAL' ? (
+                              '手动添加'
+                            ) : (
+                              '课堂讨论'
+                            )}
+                          </span>
+                          <span>收录于 {formatDate(item.addedAt)}</span>
+                        </p>
+                      )}
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 'none' }}>

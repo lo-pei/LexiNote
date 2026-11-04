@@ -127,10 +127,12 @@ export function overview(courseId: string, user: SessionUser): AnalyticsOverview
   };
 }
 
-/** 教师可查看的课程列表（用于学情页的课程切换） */
+/** 教师可查看的课程列表（用于学情面板的课程切换） */
 export interface TeachingCourseOption {
   id: string;
   title: string;
+  /** 所属教学班；未挂班的课程为 null，班级页只列挂了班的 */
+  classId: string | null;
   /** 教学班名，用于按钮上区分两个平行班 */
   className: string | null;
   /** 上课时间，来自班级说明 */
@@ -141,6 +143,7 @@ export interface TeachingCourseOption {
 export function teacherCourses(user: SessionUser): TeachingCourseOption[] {
   return getDb().all<TeachingCourseOption>(
     `SELECT c.id, c.title,
+       cls.id AS classId,
        cls.name AS className,
        cls.description AS classDescription,
        (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS studentCount

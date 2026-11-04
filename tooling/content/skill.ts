@@ -34,8 +34,10 @@ intensive_reading:
     enabled: true
     popover_sections: [original, translation, term_breakdown, add_to_vocabulary]
   translation:
-    source: "预置模板（translation_templates），哈希匹配，不调用外部 API"
-    fallback: "显示「暂无预置译文」，不报错"
+    source: "人工审校台（translation_templates，status=APPROVED）；哈希匹配，命中即返回"
+    ai_draft: "未命中且已配置模型时，学生可点「AI 试译」按需生成；草稿 status=AI_DRAFT"
+    review_gate: "AI 草稿必须经教师审校转为 APPROVED 才视为正式译文；驳回的句子不再重复生成"
+    fallback: "无人工译文且模型不可用时显示「暂无预置译文」，不报错"
 
 media:
   flowchart: { library: "React Flow 兼容 JSON", editable_roles: [teacher], student_mode: "readonly" }

@@ -29,6 +29,32 @@ const GLOSSARY_FILE = path.join(REPO_ROOT, 'data', 'glossary.zhang-falian.json')
 const CUSTOM_BOOK = { name: '自定义单词本', description: '阅读时点开的术语、手动添加的词都在这里' };
 const GLOSSARY_BOOK = { name: '法律英语单词本', description: '内置词库 · 张法连《法律英语术语表》' };
 
+/* ── 教材核心词（见 tooling/scripts/textbook-vocab.mts） ──
+ *
+ * 教材正文里的术语节点带音标与释义，但只能在点开时看一次。脚本把全书术语按
+ * 「出现在几讲」排过序，跨讲复现的那部分写成清单；这里按清单给每个账号建一本
+ * 只读词表。文件缺失时（没导教材、或只是没跑脚本）整块跳过，生词本照常可用。
+ */
+const TEXTBOOK_BOOK = { name: '教材核心词' };
+/** 词表名给页面做入口用；改名字时只改上面一处 */
+export const TEXTBOOK_BOOK_NAME = TEXTBOOK_BOOK.name;
+const TEXTBOOK_DOMAIN = '教材核心词';
+const TEXTBOOK_FILE = path.join(REPO_ROOT, 'data', 'textbook-vocab.local.json');
+
+interface TextbookVocabTerm {
+  term: string;
+  phonetic: string;
+  definition: string;
+  count: number;
+  chapters: number;
+}
+
+interface TextbookVocab {
+  book: { id: string; title: string; author: string; chapters: number };
+  minChapters: number;
+  terms: TextbookVocabTerm[];
+}
+
 interface GlossaryRow {
   term: string;
   phonetic: string | null;
@@ -83,9 +109,87 @@ function fillGlossaryBook(userId: string, wordbookId: string): void {
   );
 }
 
+/* ── 教材核心词 ─────────────────────────────────────────── */
+
+let textbookCache: TextbookVocab | null | undefined;
+
+function loadTextbookVocab(): TextbookVocab | null {
+  if (textbookCache !== undefined) return textbookCache;
+  try {
+    const raw = JSON.parse(fs.readFileSync(TEXTBOOK_FILE, 'utf8')) as TextbookVocab;
+    textbookCache = raw && Array.isArray(raw.terms) && raw.terms.length ? raw : null;
+  } catch {
+    textbookCache = null;
+  }
+  return textbookCache;
+}
+
+/**
+ * 每个账号一本只读的「教材核心词」。
+ *
+ * 词条先按「同名同释义」查一次：这张表上有 UNIQUE(term, definition_zh)，
+ * 内置术语表里已收录的词直接复用，避免同一句释义在库里存两份。
+ */
+function ensureTextbookBook(user: SessionUser, db: Db): void {
+  const vocab = loadTextbookVocab();
+  if (!vocab) return;
+
+  const exists = db.get<{ id: string }>(
+    `SELECT id FROM wordbooks WHERE user_id = ? AND name = ?`,
+    user.id,
+    TEXTBOOK_BOOK.name,
+  );
+  if (exists) return;
+
+  const bookId = uid('wb');
+  db.run(
+    `INSERT INTO wordbooks (id, user_id, name, kind, description, created_at) VALUES (?, ?, ?, 'GLOSSARY', ?, ?)`,
+    bookId,
+    user.id,
+    TEXTBOOK_BOOK.name,
+    `${vocab.book.title} · ${vocab.terms.length} 个跨讲复现的法律术语`,
+    new Date().toISOString(),
+  );
+
+  db.transaction(() => {
+    for (const item of vocab.terms) {
+      const found = db.get<{ id: string }>(
+        `SELECT id FROM vocabulary_entries WHERE term = ? AND definition_zh = ?`,
+        item.term,
+        item.definition,
+      );
+      let entryId = found?.id;
+      if (!entryId) {
+        entryId = uid('voc');
+        db.run(
+          `INSERT INTO vocabulary_entries (id, term, phonetic, definition_zh, definition_en, examples, legal_domain, origin)
+           VALUES (?, ?, ?, ?, NULL, NULL, ?, 'USER')`,
+          entryId,
+          item.term,
+          item.phonetic || null,
+          item.definition,
+          TEXTBOOK_DOMAIN,
+        );
+      }
+      db.run(
+        `INSERT OR IGNORE INTO wordbook_items
+           (id, user_id, wordbook_id, entry_id, source_type, source_doc_id, source_context, mastery_level, added_at)
+         VALUES (?, ?, ?, ?, 'DOCUMENT', NULL, ?, 0, ?)`,
+        uid('wbi'),
+        user.id,
+        bookId,
+        entryId,
+        `${vocab.book.title} · 出现在 ${item.chapters} 讲`,
+        new Date().toISOString(),
+      );
+    }
+  });
+}
+
 /**
  * 每个账号默认两个词表：空的自建词表 + 内置法律英语术语表。
  * 老库（只有「我的生词」）在首次访问时补齐并改名。
+ * 装了教材并跑过 textbook:vocab 的机器，再补一本「教材核心词」。
  */
 function ensureDefaultBooks(user: SessionUser): void {
   const db = getDb();
@@ -116,6 +220,8 @@ function ensureDefaultBooks(user: SessionUser): void {
     );
     fillGlossaryBook(user.id, id);
   }
+
+  ensureTextbookBook(user, db);
 }
 
 export function listWordbooks(user: SessionUser): Wordbook[] {
@@ -297,7 +403,7 @@ export interface AddItemInput {
 
 export function addItem(user: SessionUser, input: AddItemInput): { itemId: string; created: boolean } {
   const book = ownBook(input.wordbookId, user);
-  if (book.kind === 'GLOSSARY') throw badRequest('「法律英语单词本」是内置词库，请把新词收进自定义单词本。', 'wordbookId');
+  if (book.kind === 'GLOSSARY') throw badRequest(`「${book.name}」是内置词库，请把新词收进自定义单词本。`, 'wordbookId');
   const term = input.term.trim();
   const definition = input.definitionZh.trim();
   if (!term || !definition) throw badRequest('术语与释义都不能为空。');

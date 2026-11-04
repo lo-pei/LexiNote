@@ -103,6 +103,8 @@ export class Db {
     this.db.exec('CREATE INDEX IF NOT EXISTS idx_vocab_origin ON vocabulary_entries(origin)');
 
     this.migrateDocuments();
+    this.migrateAi();
+    this.migrateSearch();
   }
 
   /**
@@ -190,6 +192,9 @@ export class Db {
       if (!cols.some((c) => c.name === 'word_count')) {
         this.db.exec('ALTER TABLE documents ADD COLUMN word_count INTEGER NOT NULL DEFAULT 0');
       }
+      if (!cols.some((c) => c.name === 'section_label')) {
+        this.db.exec('ALTER TABLE documents ADD COLUMN section_label TEXT');
+      }
     }
 
     this.db.exec('CREATE INDEX IF NOT EXISTS idx_documents_course ON documents(course_id, kind, status)');
@@ -198,6 +203,54 @@ export class Db {
     this.db.exec('CREATE INDEX IF NOT EXISTS idx_documents_legal ON documents(legal_category, sort_order)');
     this.db.exec(
       'CREATE UNIQUE INDEX IF NOT EXISTS idx_documents_legal_slug ON documents(legal_slug) WHERE legal_slug IS NOT NULL',
+    );
+  }
+
+  /**
+   * AI 辅助相关的增量迁移（方案 docs/AI-功能实施方案.md §3）。
+   *
+   * 新表由构造阶段的 schema.sql 自动补建（CREATE TABLE IF NOT EXISTS），这里只管加列。
+   * translation_templates 补「来源」与「审核状态」：既有译文全部落 HUMAN/APPROVED，
+   * 无须回填，也不影响既有的哈希查表逻辑。
+   *
+   * **不加 CHECK 约束**：ALTER TABLE ADD COLUMN 带 CHECK 的行为不保证，
+   * 且本项目已有 documents.kind 因 CHECK 被迫重建整表的先例。取值合法性放应用层校验。
+   */
+  private migrateAi(): void {
+    const cols = this.columns('translation_templates');
+    const add = (name: string, ddl: string) => {
+      if (!cols.some((c) => c.name === name)) this.db.exec(`ALTER TABLE translation_templates ADD COLUMN ${ddl}`);
+    };
+    add('source', `source TEXT NOT NULL DEFAULT 'HUMAN'`);
+    add('status', `status TEXT NOT NULL DEFAULT 'APPROVED'`);
+    add('model', 'model TEXT');
+    add('reviewed_by', 'reviewed_by TEXT REFERENCES users(id)');
+    add('reviewed_at', 'reviewed_at TEXT');
+
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_translation_status ON translation_templates(status)');
+  }
+
+  /**
+   * 全文检索索引（FTS5）。
+   *
+   * 分词器用 `trigram` 而不是默认的 `unicode61`：后者把连续中文当成一个词，
+   * 实测搜「对价」命中 0 条——中文检索等于不可用。trigram 支持中英文子串匹配
+   * （不区分大小写、支持 `前缀*`），代价是索引体积，本库实测 +26MB，可接受。
+   *
+   * trigram 的硬限制是查询不足 3 个字符无法匹配（「对价」「de」都查不到），
+   * 这类短词由 `server/modules/search.ts` 走 LIKE 后备（实测全库扫描 35ms）。
+   *
+   * 虚拟表放在迁移里而不是 schema.sql：schema.sql 要能在老库上整段 exec，
+   * 虚拟表一旦依赖新列就会让整段失败（documents 加索引那次踩过）。
+   */
+  private migrateSearch(): void {
+    this.db.exec(
+      `CREATE VIRTUAL TABLE IF NOT EXISTS doc_fts USING fts5(
+         doc_id UNINDEXED,
+         title,
+         body,
+         tokenize = 'trigram'
+       )`,
     );
   }
 

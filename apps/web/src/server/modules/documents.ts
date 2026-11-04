@@ -12,6 +12,7 @@ import type {
 import { countTerms, countWords, textOf, wordDiff, diffStats } from '@ln/utils';
 import { getDb, parseJson } from '../db';
 import { badRequest, forbidden, notFound } from '../http';
+import { indexDocument } from './search';
 
 interface DocRow {
   id: string;
@@ -72,11 +73,12 @@ function canViewCourse(user: SessionUser, courseId: string | null): boolean {
   return Boolean(db.get(`SELECT 1 FROM enrollments WHERE course_id = ? AND student_id = ?`, courseId, user.id));
 }
 
-export function getDocument(id: string, user: SessionUser): DocumentWithMeta {
+/** 判定一份文档对当前用户是否可读；getDocument 与 docRefs 共用同一套规则 */
+function canViewRow(
+  row: { owner_id: string; course_id: string | null; kind: DocKind; status: DocStatus },
+  user: SessionUser,
+): boolean {
   const db = getDb();
-  const row = db.get<DocRow>(`SELECT * FROM documents WHERE id = ? AND deleted_at IS NULL`, id);
-  if (!row) throw notFound('文档不存在或已删除。');
-
   const isOwner = row.owner_id === user.id;
   const isCourseTeacher = Boolean(
     row.course_id &&
@@ -85,12 +87,51 @@ export function getDocument(id: string, user: SessionUser): DocumentWithMeta {
   );
   // 教材与英文法律是公共读物：已发布即对全部登录用户开放，不看选课（两者都不挂课程）
   const isPublicRead = (row.kind === 'TEXTBOOK' || row.kind === 'LAW') && row.status === 'PUBLISHED';
-  const visible = isOwner || isCourseTeacher || isPublicRead || (row.status === 'PUBLISHED' && canViewCourse(user, row.course_id));
-  if (!visible) throw forbidden('你还没有权限阅读这份文档。');
+  return (
+    isOwner ||
+    isCourseTeacher ||
+    isPublicRead ||
+    (row.status === 'PUBLISHED' && canViewCourse(user, row.course_id))
+  );
+}
 
+/**
+ * 把一批文档 id 换成「当前用户读得到的」标题。
+ *
+ * 课程安排页的专题与案例挂的是课件 id，标题一律现取：文档改名、删除或
+ * 收回权限后，页面自动跟着变，不会留一条点进去 403 的死链。
+ */
+export function docRefs(ids: string[], user: SessionUser): Map<string, { title: string; kind: DocKind }> {
+  const out = new Map<string, { title: string; kind: DocKind }>();
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (!unique.length) return out;
+
+  const db = getDb();
+  for (const id of unique) {
+    const row = db.get<{
+      id: string;
+      title: string;
+      kind: DocKind;
+      status: DocStatus;
+      owner_id: string;
+      course_id: string | null;
+    }>(`SELECT id, title, kind, status, owner_id, course_id FROM documents WHERE id = ? AND deleted_at IS NULL`, id);
+    if (!row || !canViewRow(row, user)) continue;
+    out.set(row.id, { title: row.title, kind: row.kind });
+  }
+  return out;
+}
+
+export function getDocument(id: string, user: SessionUser): DocumentWithMeta {
+  const db = getDb();
+  const row = db.get<DocRow>(`SELECT * FROM documents WHERE id = ? AND deleted_at IS NULL`, id);
+  if (!row) throw notFound('文档不存在或已删除。');
+
+  const isOwner = row.owner_id === user.id;
   // 教材与法律正文不开放编辑，连导入账号（所有者）也不例外——否则一次误保存就改了原文
   const editableKind = row.kind !== 'TEXTBOOK' && row.kind !== 'LAW';
   const canEdit = isOwner && editableKind;
+  if (!canViewRow(row, user)) throw forbidden('你还没有权限阅读这份文档。');
 
   const owner = db.get<{ name: string }>(`SELECT name FROM users WHERE id = ?`, row.owner_id);
   const course = row.course_id
@@ -142,17 +183,23 @@ export interface LibraryEntry {
   status: DocStatus;
   updatedAt: string;
   originTitle: string | null;
+  /** 所属课程名；两门课同名时用班名区分，未挂课时为 null */
+  courseTitle: string | null;
   words: number;
   terms: number;
 }
 
 export function listLibrary(user: SessionUser): LibraryEntry[] {
   const db = getDb();
-  const rows = db.all<DocRow & { origin_title: string | null }>(
+  const rows = db.all<DocRow & { origin_title: string | null; course_title: string | null }>(
     // 教材章节归教材库管理、英文法律归专题管理，都不混进「我的文档」，
     // 否则一次导入就是上百行噪音
-    `SELECT d.*, o.title AS origin_title
-     FROM documents d LEFT JOIN documents o ON o.id = d.parent_doc_id
+    // 两门课都叫「法律英语」，光看课程名分不清是哪个班，所以优先用班级名
+    `SELECT d.*, o.title AS origin_title, COALESCE(cl.name, c.title) AS course_title
+     FROM documents d
+     LEFT JOIN documents o ON o.id = d.parent_doc_id
+     LEFT JOIN courses c ON c.id = d.course_id
+     LEFT JOIN classes cl ON cl.id = c.class_id
      WHERE d.owner_id = ? AND d.deleted_at IS NULL AND d.kind NOT IN ('TEXTBOOK','LAW')
      ORDER BY d.updated_at DESC`,
     user.id,
@@ -167,6 +214,7 @@ export function listLibrary(user: SessionUser): LibraryEntry[] {
       status: r.status,
       updatedAt: r.updated_at,
       originTitle: r.origin_title,
+      courseTitle: r.course_title,
       words: countWords(textOf(doc)),
       terms: countTerms(doc),
     };
@@ -198,10 +246,12 @@ export function createDocument(
 
   if (input.kind === 'COURSEWARE') {
     if (user.role !== 'TEACHER') throw forbidden('只有教师可以创建课件。');
-    if (!input.courseId) throw badRequest('课件必须归属一门课程。', 'courseId');
-    const course = db.get<{ teacher_id: string }>(`SELECT teacher_id FROM courses WHERE id = ?`, input.courseId);
-    if (!course) throw notFound('课程不存在。');
-    if (course.teacher_id !== user.id) throw forbidden('只能在自己的课程下创建课件。');
+    // 挂课的课件必须是自己教的课；不挂课的放个人课件库，之后可再归到某门课
+    if (input.courseId) {
+      const course = db.get<{ teacher_id: string }>(`SELECT teacher_id FROM courses WHERE id = ?`, input.courseId);
+      if (!course) throw notFound('课程不存在。');
+      if (course.teacher_id !== user.id) throw forbidden('只能在自己的课程下创建课件。');
+    }
   }
 
   db.run(
@@ -210,12 +260,15 @@ export function createDocument(
     id,
     user.id,
     input.courseId ?? null,
-    JSON.stringify(content),
+    // 占位符顺序是 title → content，别写反：写反会让标题存成 JSON、正文只剩标题
     input.title.trim() || '未命名文档',
+    JSON.stringify(content),
     input.kind,
     iso,
     iso,
   );
+  // 索引失败不影响建文档本身，indexDocument 内部已吞掉异常
+  indexDocument(id);
   return { id };
 }
 
@@ -264,6 +317,9 @@ export function saveDocument(
       iso,
     );
   }
+
+  // 正文可能已变：同步检索索引。放最后是因为快照失败时不该留下「索引比正文新」的状态
+  indexDocument(id);
 
   return { updatedAt: iso, snapshotId };
 }

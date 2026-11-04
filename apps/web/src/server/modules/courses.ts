@@ -20,6 +20,8 @@ interface CourseRow {
 interface DocRow {
   id: string;
   title: string;
+  subtitle: string | null;
+  section_label: string | null;
   kind: 'COURSEWARE' | 'NOTE';
   status: 'DRAFT' | 'PUBLISHED';
   content: string;
@@ -53,7 +55,7 @@ export function listCourses(user: SessionUser): CourseDetail[] {
       db.get(`SELECT 1 FROM enrollments WHERE course_id = ? AND student_id = ?`, row.id, user.id),
     );
     const courseware = db.all<DocRow>(
-      `SELECT id, title, kind, status, content, updated_at FROM documents
+      `SELECT id, title, subtitle, section_label, kind, status, content, updated_at FROM documents
        WHERE course_id = ? AND kind = 'COURSEWARE' AND deleted_at IS NULL
        ORDER BY sort_order ASC`,
       row.id,
@@ -90,6 +92,8 @@ export function listCourses(user: SessionUser): CourseDetail[] {
           words: countWords(textOf(doc)),
           termCount: countTerms(doc),
           updatedAt: d.updated_at,
+          subtitle: d.subtitle,
+          section: d.section_label,
         } satisfies CoursewareSummary;
       }),
       assignments: assignments.map((t) => ({

@@ -20,6 +20,7 @@ export function LegalDoc({
   summary,
   sections,
   end,
+  titleAs: TitleTag = 'h1',
 }: {
   kicker: string;
   title: string;
@@ -27,11 +28,13 @@ export function LegalDoc({
   summary: ReactNode;
   sections: LegalSection[];
   end?: ReactNode;
+  /** 嵌在帮助页里时页面已有 h1，这里降一级，避免一页两个一级标题 */
+  titleAs?: 'h1' | 'h2';
 }) {
   return (
     <article className="legal">
       <p className="legal__kicker">{kicker}</p>
-      <h1 className="legal__title">{title}</h1>
+      <TitleTag className="legal__title">{title}</TitleTag>
       <p className="legal__meta">{meta}</p>
 
       <div className="legal__summary">{summary}</div>

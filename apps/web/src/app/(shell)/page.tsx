@@ -8,10 +8,12 @@ import { formatRelative } from '@ln/utils';
 import { CourseCard } from '@/components/course-card';
 import { NewCourse } from '@/components/new-course';
 import { JoinClass } from '@/components/join-class';
+import { ProgressBoard } from '@/components/progress-board';
+import { courseProgress } from '@/server/modules/teaching-progress';
 
 export const dynamic = 'force-dynamic';
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: { joinFailed?: string } }) {
   const user = await requirePageUser();
   const courses = await listCourses(user);
   const classes = listClasses(user);
@@ -24,8 +26,12 @@ export default async function HomePage() {
   const others =
     user.role === 'STUDENT' ? [] : courses.filter((course) => !mine.some((item) => item.id === course.id));
 
+  // 还没有班的学生才需要这个输入框；有班的人走邀请链接加入别的班
+  const needJoinBox = user.role !== 'TEACHER' && !classes.length;
+
   const library = user.role === 'STUDENT' || user.role === 'ADMIN' ? listLibrary(user).slice(0, 4) : [];
   const topics = listTopics(user).slice(0, 4);
+  const progress = mine.length ? courseProgress(user) : [];
 
   return (
     <div className="wrap">
@@ -46,8 +52,14 @@ export default async function HomePage() {
         </div>
       </header>
 
-      {user.role !== 'TEACHER' && !classes.length ? (
-        <div style={{ marginBottom: 30 }}>
+      {searchParams.joinFailed ? (
+        <div className="notice notice--accent" style={{ marginBottom: 22 }}>
+          账号已经建好，但班级码没能核验通过。请在下面重新输入教师给的班级码，或打开邀请链接加入。
+        </div>
+      ) : null}
+
+      {needJoinBox ? (
+        <div id="join" style={{ marginBottom: 30 }}>
           <JoinClass />
         </div>
       ) : null}
@@ -77,6 +89,16 @@ export default async function HomePage() {
         )}
       </section>
 
+      {progress.length ? (
+        <section className="section">
+          <div className="section__head">
+            <h2 className="section__title">{user.role === 'TEACHER' ? '教学进度' : '课程进度'}</h2>
+            <span className="section__hint">按课程安排的专题与上课日推算</span>
+          </div>
+          <ProgressBoard items={progress} />
+        </section>
+      ) : null}
+
       {others.length ? (
         <section className="section">
           <div className="section__head">
@@ -101,7 +123,11 @@ export default async function HomePage() {
         </section>
       ) : null}
 
-      <div className="grid grid--2" style={{ marginTop: 34, alignItems: 'start' }}>
+      {/* 只有一块内容时不要留半屏空栏 */}
+      <div
+        className={`grid${library.length && topics.length ? ' grid--2' : ''}`}
+        style={{ marginTop: 34, alignItems: 'start' }}
+      >
         {library.length ? (
           <section>
             <div className="section__head">

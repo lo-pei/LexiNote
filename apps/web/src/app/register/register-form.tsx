@@ -56,7 +56,7 @@ export function RegisterForm({
       if (result.classId) {
         router.replace(`/classes/${result.classId}`);
       } else if (result.joinWarning) {
-        router.replace('/classes?joinFailed=1');
+        router.replace('/?joinFailed=1');
       } else {
         router.replace(next ?? '/');
       }
@@ -164,7 +164,7 @@ export function RegisterForm({
             spellCheck={false}
           />
           <span className="ln-hint ln-hint--nowrap">
-            留空也能注册，登录后在「班级」页用班级码或邀请链接加入。
+            留空也能注册，登录后在「课程」首页用班级码或邀请链接加入。
           </span>
         </div>
       )}

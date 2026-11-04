@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { BackToTop } from '@/components/back-to-top';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 /**
  * 公开页外壳：隐私政策与使用条款不要求登录。
@@ -24,6 +25,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         <nav className="docpage__nav" aria-label="公开页面导航">
           <Link href="/privacy">隐私政策</Link>
           <Link href="/terms">使用条款</Link>
+          <ThemeToggle compact />
           <Link href="/login" className="docpage__back">
             返回登录
           </Link>

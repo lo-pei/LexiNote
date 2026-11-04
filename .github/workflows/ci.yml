@@ -1,0 +1,52 @@
+name: CI
+
+# 只做不依赖浏览器的四项：类型、规范、单测、构建。
+# 接口测试（提交包/scripts/api-test.mjs）需要起服务并依赖本地内容导入，
+# 属于交付前的本地验收，不进 CI——在 README 的「常用命令」里说明跑法。
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: 类型 / 规范 / 单测 / 构建
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 类型检查
+        run: npm run typecheck
+
+      - name: 代码规范
+        run: npm run lint
+
+      - name: 单元测试
+        run: npm test
+
+      - name: 建演示库
+        # 页面全部 force-dynamic，构建期不查库；但 seed 能顺带验证
+        # schema.sql 与迁移脚本在干净环境下跑得通（源码包不含 data/）。
+        run: npm run db:seed
+
+      - name: 生产构建
+        run: npm run build
+        env:
+          JWT_SECRET: ci-only-secret-not-used-at-runtime

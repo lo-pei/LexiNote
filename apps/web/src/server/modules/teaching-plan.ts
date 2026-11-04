@@ -1,22 +1,16 @@
-import type { SessionUser } from '@ln/types';
 import { getCoursePlan, type PlanCourse, type PlanCourseware, type PlanTopic } from '../content/plan';
-import { getDb } from '../db';
-import { badRequest, forbidden } from '../http';
 
 /**
  * 授课课件的选定与读取。
  *
- * 课件本身写在 data/course-plan.local.json 的 coursewares 数组里（每套自带专题表，
- * 教师后续换讲法只需往数组里加一项）；「这学期用哪套」是一条可变的配置，
- * 保存在 app_meta 里，不新建表。
+ * 课件本身写在 data/course-plan.local.json 的 coursewares 数组里（每套自带专题表）。
+ * 课程安排页不再展示备选课件与切换入口——一门课只按一套讲，换讲法改本机文件即可。
  */
-
-const KEY = 'plan.courseware';
 
 export interface ActivePlan {
   course: PlanCourse;
   coursewares: PlanCourseware[];
-  /** 当前生效的课件 id：没选过时就是第一套 */
+  /** 当前生效的课件 id（本地文件里的第一套） */
   activeId: string;
   topics: PlanTopic[];
   note?: string;
@@ -25,8 +19,8 @@ export interface ActivePlan {
 
 export function getActivePlan(): ActivePlan {
   const { plan, source } = getCoursePlan();
-  const row = getDb().get<{ value: string }>('SELECT value FROM app_meta WHERE key = ?', KEY);
-  const active = plan.coursewares.find((item) => item.id === row?.value) ?? plan.coursewares[0]!;
+  // 授课课件不再提供页面切换：以本地文件里的第一套为准
+  const active = plan.coursewares[0]!;
   return {
     course: plan.course,
     coursewares: plan.coursewares,
@@ -35,18 +29,4 @@ export function getActivePlan(): ActivePlan {
     note: active.note,
     source,
   };
-}
-
-export function selectCourseware(coursewareId: string, user: SessionUser): void {
-  if (user.role === 'STUDENT') throw forbidden('只有任课教师可以更换授课课件。');
-  const { plan } = getCoursePlan();
-  if (!plan.coursewares.some((item) => item.id === coursewareId)) {
-    throw badRequest('没有这套授课课件，刷新页面后再试。');
-  }
-  getDb().run(
-    `INSERT INTO app_meta (key, value) VALUES (?, ?)
-     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-    KEY,
-    coursewareId,
-  );
 }

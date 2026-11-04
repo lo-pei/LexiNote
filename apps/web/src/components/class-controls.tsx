@@ -90,7 +90,7 @@ export function ClassCodePanel({
         <CopyButton value={code} label="复制班级码" />
       </div>
       <p className="ln-hint">
-        学生在注册页或「班级」页输入这 6 位码即可入班，入班后自动选修本班课程。
+        学生在注册页或课程首页输入这 6 位码即可入班，入班后自动选修本班课程。
         {isOwner ? ' 班级码外流时，重置一次最省事。' : ''}
       </p>
       {isOwner ? (
@@ -224,7 +224,7 @@ export function LeaveClass({ classId }: { classId: string }) {  const router = u
     setBusy(true);
     try {
       await api(`/api/classes/${classId}/leave`, { method: 'POST' });
-      router.push('/classes');
+      router.push('/');
       router.refresh();
     } catch (cause) {
       window.alert(errorMessage(cause));
@@ -278,7 +278,7 @@ export function DisbandClass({
     setBusy(true);
     try {
       await api(`/api/classes/${classId}`, { method: 'DELETE' });
-      router.push('/classes');
+      router.push('/');
       router.refresh();
     } catch (cause) {
       window.alert(errorMessage(cause));

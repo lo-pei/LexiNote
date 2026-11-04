@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import type { TextbookDetail } from '@ln/types';
 import { requirePageUser } from '@/lib/session';
 import { getTextbook } from '@/server/modules/textbooks';
+import { listWordbooks, TEXTBOOK_BOOK_NAME } from '@/server/modules/vocabulary';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,8 @@ export default async function TextbookPage({ params }: { params: { id: string } 
   if (!found) notFound();
 
   const book: TextbookDetail = found;
+  // 跑过 textbook:vocab 的机器上，每个账号都有一本从本书抽出来的核心词表
+  const vocabBook = listWordbooks(user).find((item) => item.name === TEXTBOOK_BOOK_NAME);
 
   return (
     <div className="wrap">
@@ -51,6 +54,11 @@ export default async function TextbookPage({ params }: { params: { id: string } 
           </p>
         </div>
         <div className="head__actions">
+          {vocabBook ? (
+            <Link className="ln-btn ln-btn--outline ln-btn--sm" href={`/wordbooks?book=${vocabBook.id}`}>
+              本书核心词 {vocabBook.itemCount}
+            </Link>
+          ) : null}
           <span className="shelf__count">
             {book.chapterCount} 篇 · {fmt(book.wordCount)} 字
           </span>

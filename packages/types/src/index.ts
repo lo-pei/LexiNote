@@ -129,6 +129,10 @@ export interface CoursewareSummary {
   words: number;
   updatedAt: string;
   termCount: number;
+  /** 一句话说明（页数、材料类型），列表里当副标题用 */
+  subtitle: string | null;
+  /** 课件列表的分组标题，同一段连续出现的只渲染一次 */
+  section: string | null;
 }
 
 export interface CourseDetail extends Course {

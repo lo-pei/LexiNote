@@ -57,8 +57,14 @@
   margin-top: 0;
 }
 
-/* 课件正文里的英文段落使用可读行长，不撑满整个版心 */
-.ln-prose p {
+/* 正文两端对齐。
+   —— 中文按字距撑满（inter-ideograph），英文按词距撑满；
+   标题、短句、列表符号不参与，否则单行标题会被拉出稀疏的空隙。 */
+.ln-prose p,
+.ln-prose li,
+.ln-prose blockquote p {
+  text-align: justify;
+  text-justify: auto;
   text-wrap: pretty;
 }
 

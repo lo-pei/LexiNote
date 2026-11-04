@@ -16,6 +16,8 @@ export type TopicKind = 'LECTURE' | 'READING';
 export interface PlanCase {
   name: string;
   citation?: string;
+  /** 该案例对应的课件文档 id（可省，省了就是还没有电子稿） */
+  doc?: string;
 }
 
 export interface PlanTopic {
@@ -31,6 +33,14 @@ export interface PlanTopic {
   week?: string;
   summary?: string;
   cases: PlanCase[];
+  /**
+   * 这个专题对应的课件文档 id。
+   *
+   * 专题本身是「教学大纲」里的一个条目，学生真正要读的是课件——
+   * 在这里挂上 id，课程安排页就能直接跳到 /docs/<id>。
+   * 同一专题备了不止一份课件（例如 Topic 2 有 Dobbs 与 Roe 两份）时依次列出。
+   */
+  docs?: string[];
 }
 
 /** 专题相对当前日期的进度 */
@@ -106,6 +116,8 @@ export interface PlanCourse {
   teacher?: string;
   room?: string;
   weeks?: string;
+  /** 学期第一周的周一（或首个上课日），用于推算「现在第几周」；缺省时按专题最早日期算 */
+  termStart?: string;
   mode?: string;
   programs: PlanProgram[];
   note?: string;
@@ -214,9 +226,13 @@ function readTopics(raw: unknown): PlanTopic[] {
       for (const entry of row.cases) {
         const c = (entry ?? {}) as Record<string, unknown>;
         const name = asString(c.name);
-        if (name) cases.push({ name, citation: asString(c.citation) });
+        if (name) cases.push({ name, citation: asString(c.citation), doc: asString(c.doc) });
       }
     }
+
+    const docs = Array.isArray(row.docs)
+      ? row.docs.map((entry) => asString(entry)).filter((item): item is string => Boolean(item))
+      : [];
 
     topics.push({
       no: typeof row.no === 'number' ? row.no : index + 1,
@@ -227,6 +243,7 @@ function readTopics(raw: unknown): PlanTopic[] {
       week: asString(row.week),
       summary: asString(row.summary),
       cases,
+      ...(docs.length ? { docs } : {}),
     });
   });
   return topics;
@@ -263,6 +280,7 @@ function normalize(raw: unknown): CoursePlan {
     teacher: asString(courseInput.teacher),
     room: asString(courseInput.room),
     weeks: asString(courseInput.weeks),
+    termStart: asString(courseInput.termStart),
     mode: asString(courseInput.mode),
     programs,
     note: asString(courseInput.note),

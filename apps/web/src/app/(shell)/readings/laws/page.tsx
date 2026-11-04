@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { requirePageUser } from '@/lib/session';
 import { listLawLibrary } from '@/server/modules/laws';
 import { LAW_CATEGORIES, LAW_SOURCE_NOTE } from '@/server/content/legal-library';
-import { LawCatalog } from '@/components/law-catalog';
+import { LawTree } from '@/components/law-tree';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: '英文法律专题 · LexiNote' };
@@ -61,17 +61,7 @@ export default async function LawLibraryPage() {
         <span>{LAW_SOURCE_NOTE.disclaimer}</span>
       </div>
 
-      <nav className="lawc__jump" aria-label="部门法分类">
-        {library.categories.map((cat) => (
-          <a className="lawc__chip" href={`#c-${cat.code}`} key={cat.code}>
-            <b>{cat.code}</b>
-            {cat.titleZh}
-            <span>{cat.docCount}</span>
-          </a>
-        ))}
-      </nav>
-
-      <LawCatalog library={library} />
+      <LawTree library={library} />
 
       <p className="ln-hint" style={{ marginTop: 26 }}>
         正文为只读：可以在阅读页点术语看释义、标生词、做批注，条文本身不提供编辑。

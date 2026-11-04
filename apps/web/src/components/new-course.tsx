@@ -146,7 +146,7 @@ export function NewCourse({ classes = [] }: { classes?: ClassOption[] }) {
                     <CopyButton value={created.joinCode} label="复制班级码" />
                   </div>
                 ) : null}
-                <p className="ln-hint">班级码随时可在「班级」页重置，班级成员与邀请链接也在那里管理。</p>
+                <p className="ln-hint">班级码随时可在课程页的「教学班」一栏重置，成员名单与邀请链接也在那里。</p>
                 <div className="modal__actions">
                   <button className="ln-btn ln-btn--primary ln-btn--sm" type="button" onClick={close}>
                     知道了

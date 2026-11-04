@@ -5,8 +5,13 @@
  * 比列三十本更有用。ISBN 均按纸本版权页核对，检索时忽略连字符即可命中。
  */
 
+/** 书单分组：按「拿它做什么用」分，而不是按出版社或年份堆在一起 */
+export type ReadingGroupKey = 'read' | 'trans' | 'listen' | 'exam' | 'ref';
+
 export interface Reading {
   id: string;
+  /** 所属分组，见 READING_GROUPS */
+  group: ReadingGroupKey;
   title: string;
   author: string;
   publisher: string;
@@ -18,9 +23,19 @@ export interface Reading {
   tags: string[];
 }
 
+/** 分组顺序即页面上自上而下的顺序：先打底，再专项，最后查考 */
+export const READING_GROUPS: { key: ReadingGroupKey; title: string; lead: string }[] = [
+  { key: 'read', title: '精读教材', lead: '课堂主线，按课/讲推进，缺系统底子时先读这一组。' },
+  { key: 'trans', title: '翻译与写作', lead: '产出型训练：先把英文读懂，再把中文写对、把文书格式写对。' },
+  { key: 'listen', title: '听说训练', lead: '庭审、讲座与课堂对话的听力材料，口译机房上课可直接配合。' },
+  { key: 'exam', title: '应试真题', lead: '看命题口径用，不必通读；成套做完再对解析。' },
+  { key: 'ref', title: '工具书', lead: '查词备查，按需翻检，不适合从头读到尾。' },
+];
+
 export const readings: Reading[] = [
   {
     id: 'rd_hejiahong_4e',
+    group: 'read',
     title: '法律英语（第四版）',
     author: '何家弘 编',
     publisher: '法律出版社',
@@ -31,6 +46,7 @@ export const readings: Reading[] = [
   },
   {
     id: 'rd_zhang_jingdu_1',
+    group: 'read',
     title: '法律英语精读教程（上）',
     author: '张法连 主编',
     publisher: '北京大学出版社',
@@ -41,6 +57,7 @@ export const readings: Reading[] = [
   },
   {
     id: 'rd_zhang_jingdu_2',
+    group: 'read',
     title: '法律英语精读教程（下）',
     author: '张法连 主编',
     publisher: '北京大学出版社',
@@ -51,6 +68,7 @@ export const readings: Reading[] = [
   },
   {
     id: 'rd_zhang_fanyi',
+    group: 'trans',
     title: '法律英语翻译教程',
     author: '张法连 主编',
     publisher: '北京大学出版社',
@@ -61,6 +79,7 @@ export const readings: Reading[] = [
   },
   {
     id: 'rd_zhang_xiezuo',
+    group: 'trans',
     title: '法律英语写作教程',
     author: '张法连 主编',
     publisher: '北京大学出版社',
@@ -71,6 +90,7 @@ export const readings: Reading[] = [
   },
   {
     id: 'rd_zhang_shiting',
+    group: 'listen',
     title: '法律英语视听说',
     author: '张法连 主编',
     publisher: '北京大学出版社',
@@ -81,6 +101,7 @@ export const readings: Reading[] = [
   },
   {
     id: 'rd_zhang_shuyu',
+    group: 'ref',
     title: '英美法律术语双解',
     author: '张法连 编著',
     publisher: '北京大学出版社',
@@ -91,6 +112,7 @@ export const readings: Reading[] = [
   },
   {
     id: 'rd_walenn',
+    group: 'read',
     title: '法律英语教程（大学专门用途英语系列）',
     author: 'Jeremy Walenn 原著；《大学专门用途英语》改编组 改编',
     publisher: '高等教育出版社',
@@ -101,6 +123,7 @@ export const readings: Reading[] = [
   },
   {
     id: 'rd_lec_0812',
+    group: 'exam',
     title: '法律英语证书（LEC）全国统一考试历年真题详解（2008—2012）',
     author: '法律英语证书（LEC）全国统一考试指导委员会 编',
     publisher: '中国法制出版社',
@@ -111,6 +134,7 @@ export const readings: Reading[] = [
   },
   {
     id: 'rd_lec_1316',
+    group: 'exam',
     title: '法律英语证书（LEC）全国统一考试历年真题详解（2013—2016）',
     author: '张法连 主编',
     publisher: '北京大学出版社',

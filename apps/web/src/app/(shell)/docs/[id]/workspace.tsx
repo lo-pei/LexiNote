@@ -9,7 +9,7 @@ import type { TermActivation } from '@ln/editor';
 import type { DocumentWithMeta, ReadLevel, SessionUser, TiptapDoc, Wordbook } from '@ln/types';
 import { countWords, formatRelative, splitSentences } from '@ln/utils';
 import { api, errorMessage } from '@/lib/client';
-import type { SentenceMatch, SaveState } from '@/lib/types';
+import type { DraftResultDTO, SentenceMatch, SaveState } from '@/lib/types';
 import { TermMaker, TermPopover, TranslationPopover } from '@/components/overlays';
 import type { AnchorRect, TermCardData } from '@/components/overlays';
 
@@ -49,6 +49,10 @@ export function DocumentWorkspace({ doc, user, wordbooks }: DocumentWorkspacePro
   const [term, setTerm] = useState<TermCardData | null>(null);
   const [trans, setTrans] = useState<{ rect: AnchorRect; lines: SentenceMatch[]; loading: boolean; error: string | null } | null>(null);
   const [transMode, setTransMode] = useState(false);
+  // AI 三个状态：是否可用、正在生成哪一句、哪些句子已被教师驳回
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [draftingHash, setDraftingHash] = useState<string | null>(null);
+  const [rejectedHashes, setRejectedHashes] = useState<string[]>([]);
   const [maker, setMaker] = useState<{ label: string; rect: AnchorRect } | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -56,6 +60,29 @@ export function DocumentWorkspace({ doc, user, wordbooks }: DocumentWorkspacePro
   const terms = useMemo(() => countTerms(content), [content]);
   const headings = useMemo(() => collectHeadings(content), [content]);
   const editable = doc.canEdit && mode === 'edit';
+
+  /**
+   * 阅读轨迹：停留 8 秒才记一次，翻几眼就走的打开不算学习量。
+   * 同一份课件在一个标签页会话里只记一次，刷新不会把「已读课件」刷上去。
+   */
+  useEffect(() => {
+    if (doc.canEdit) return;
+    const key = `ln-read:${doc.id}`;
+    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(key)) return;
+    const timer = setTimeout(() => {
+      if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(key, '1');
+      void api('/api/events', {
+        method: 'POST',
+        body: JSON.stringify({
+          eventType: 'DOC_OPEN',
+          payload: { docId: doc.id, courseId: doc.courseId ?? undefined },
+        }),
+      }).catch(() => {
+        // 记录失败不打扰阅读
+      });
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [doc.id, doc.courseId, doc.canEdit]);
 
   useEffect(() => {
     if (!toast) return;
@@ -102,6 +129,19 @@ export function DocumentWorkspace({ doc, user, wordbooks }: DocumentWorkspacePro
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [state]);
 
+  /**
+   * 取术语所在的原句。
+   * 两个用途：AI 语境释义需要句子才能判断词义；加入生词本时存下来，
+   * 复习出题（P4）会用它做挖空——比另造句更贴近学生当时的阅读现场。
+   */
+  const sentenceOf = (payload: TermActivation): string | null => {
+    const block = payload.element.closest('p, li, blockquote, td, h1, h2, h3');
+    const text = (block?.textContent ?? '').trim();
+    if (!text) return null;
+    const sentences = splitSentences(text).map((item) => item.text);
+    return sentences.find((item) => item.includes(payload.label)) ?? sentences[0] ?? text.slice(0, 600);
+  };
+
   const onTermActivate = (payload: TermActivation) => {
     setTrans(null);
     setTerm({
@@ -110,6 +150,7 @@ export function DocumentWorkspace({ doc, user, wordbooks }: DocumentWorkspacePro
       phonetic: payload.phonetic,
       definition: payload.definition,
       rect: payload.rect,
+      context: sentenceOf(payload),
     });
     void api('/api/events', {
       method: 'POST',
@@ -136,6 +177,55 @@ export function DocumentWorkspace({ doc, user, wordbooks }: DocumentWorkspacePro
       setTrans({ rect: rectOf(block), lines, loading: false, error: null });
     } catch (cause) {
       setTrans({ rect: rectOf(block), lines: [], loading: false, error: errorMessage(cause) });
+    }
+  };
+
+  /** AI 开关只在挂载时问一次：不可用就不显示「AI 试译」，界面与接入前完全一致 */
+  useEffect(() => {
+    api<{ enabled: boolean }>('/api/ai/status')
+      .then((res) => setAiEnabled(Boolean(res.enabled)))
+      .catch(() => setAiEnabled(false));
+  }, []);
+
+  /**
+   * 按需生成某一句的 AI 草稿。
+   * 刻意不做「打开浮层就整段生成」——2.4 万句全量预生成既费钱又可能白费，
+   * 实际调用量应收敛到学生真正卡住的那几句。
+   */
+  const requestDraft = async (hash: string) => {
+    const line = trans?.lines.find((item) => item.hash === hash);
+    if (!line || draftingHash) return;
+    setDraftingHash(hash);
+    try {
+      const res = await api<DraftResultDTO>('/api/translation/draft', {
+        method: 'POST',
+        body: JSON.stringify({ text: line.text }),
+      });
+      const value = res.translation;
+      if (value && (res.status === 'AI_DRAFT' || res.status === 'APPROVED')) {
+        const status = res.status === 'APPROVED' ? 'APPROVED' : 'AI_DRAFT';
+        setTrans((prev) =>
+          prev
+            ? {
+                ...prev,
+                error: null,
+                lines: prev.lines.map((item) =>
+                  item.hash === hash ? { ...item, matched: true, translation: value, status } : item,
+                ),
+              }
+            : prev,
+        );
+      } else if (res.status === 'REJECTED') {
+        setRejectedHashes((prev) => (prev.includes(hash) ? prev : [...prev, hash]));
+      } else {
+        setTrans((prev) =>
+          prev ? { ...prev, error: 'AI 暂时不可用，请稍后再试，或请教师补充该句译文。' } : prev,
+        );
+      }
+    } catch (cause) {
+      setTrans((prev) => (prev ? { ...prev, error: errorMessage(cause) } : prev));
+    } finally {
+      setDraftingHash(null);
     }
   };
 
@@ -485,9 +575,10 @@ export function DocumentWorkspace({ doc, user, wordbooks }: DocumentWorkspacePro
           source={{
             sourceType: doc.kind === 'COURSEWARE' ? 'COURSE' : 'DOCUMENT',
             sourceDocId: doc.id,
-            sourceContext: null,
+            sourceContext: term.context,
             courseId: doc.courseId,
           }}
+          aiEnabled={aiEnabled}
           onClose={() => setTerm(null)}
           onToast={setToast}
         />
@@ -499,6 +590,10 @@ export function DocumentWorkspace({ doc, user, wordbooks }: DocumentWorkspacePro
           lines={trans.lines}
           loading={trans.loading}
           error={trans.error}
+          aiEnabled={aiEnabled}
+          draftingHash={draftingHash}
+          rejectedHashes={rejectedHashes}
+          onDraft={(hash) => void requestDraft(hash)}
           onClose={() => setTrans(null)}
         />
       ) : null}

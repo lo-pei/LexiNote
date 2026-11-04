@@ -1,23 +1,32 @@
 import Link from 'next/link';
 import { requirePageUser } from '@/lib/session';
-import { readings } from '@/server/content/readings';
+import { readings, READING_GROUPS } from '@/server/content/readings';
 import { LAW_SOURCE_NOTE } from '@/server/content/legal-library';
 import { listLawLibrary } from '@/server/modules/laws';
 import { ReadingShelf } from '@/components/reading-shelf';
+import { ReadingDots } from '@/components/reading-dots';
+import { LawTreeMini } from '@/components/law-tree-mini';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: '推荐阅读 · LexiNote' };
+
+const LAW_DOT = { id: 'laws', label: '中国法英译' };
 
 export default async function ReadingsPage() {
   await requirePageUser();
   const library = listLawLibrary();
 
+  // 点状目录：五个书单分组 + 末尾的法律专题
+  const dots = [...READING_GROUPS.map((group) => ({ id: `rg-${group.key}`, label: group.title })), LAW_DOT];
+
   // 页头整行去掉：书架自己带标题，上面的「推荐阅读 / 课程安排」是重复的
   return (
     <div className="wrap">
-      <ReadingShelf books={readings} variant="page" />
+      <ReadingDots items={dots} />
 
-      <section className="section lawtile-wrap" aria-labelledby="laws-title">
+      <ReadingShelf books={readings} groups={READING_GROUPS} variant="page" />
+
+      <section className="section lawtile-wrap" id={LAW_DOT.id} aria-labelledby="laws-title">
         <div className="section__head">
           <h2 className="section__title" id="laws-title">
             {LAW_SOURCE_NOTE.title}
@@ -32,18 +41,11 @@ export default async function ReadingsPage() {
           正文进站可读，点术语即看释义。查条文、找译名、练长句，都在这一处。
         </p>
 
-        <div className="lawtile__grid">
-          {library.categories.map((cat) => (
-            <Link className="lawtile" href={`/readings/laws#c-${cat.code}`} key={cat.code}>
-              <span className="lawtile__code">{cat.code}</span>
-              <span className="lawtile__zh">{cat.titleZh}</span>
-              <span className="lawtile__en">{cat.title}</span>
-              <span className="lawtile__meta">
-                {cat.docCount} 篇 · {cat.wordCount.toLocaleString('zh-CN')} 词
-              </span>
-            </Link>
-          ))}
-        </div>
+        <LawTreeMini
+          categories={library.categories}
+          totalDocs={library.totalDocs}
+          totalWords={library.totalWords}
+        />
 
         <p className="ln-hint" style={{ marginTop: 14 }}>
           {LAW_SOURCE_NOTE.disclaimer}
