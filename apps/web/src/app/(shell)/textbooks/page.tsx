@@ -25,7 +25,7 @@ export default async function TextbooksPage() {
         </div>
         <div className="head__actions">
           <span className="shelf__count">
-            {books.length} 部 · {chapters} 篇 · 约 {fmt(Math.round(words / 10000))} 万字
+            {books.length} 部、{chapters} 篇、约 {fmt(Math.round(words / 10000))} 万字
           </span>
         </div>
       </header>

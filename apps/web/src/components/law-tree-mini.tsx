@@ -23,9 +23,9 @@ export function LawTreeMini({
           法
         </span>
         <span className="ltree-mini__roottext">
-          <b>中国现行法律 · 英文官方译本</b>
+          <b>中国现行法律，英文官方译本</b>
           <span>
-            {categories.length} 个部门法 · {totalDocs} 篇 · {totalWords.toLocaleString('zh-CN')} 词
+            {categories.length} 个部门法、{totalDocs} 篇、{totalWords.toLocaleString('zh-CN')} 词
           </span>
         </span>
       </div>

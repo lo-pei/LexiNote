@@ -32,7 +32,7 @@ export default async function ReadingsPage() {
             {LAW_SOURCE_NOTE.title}
           </h2>
           <Link className="section__hint" href="/readings/laws">
-            查看全部 {library.totalDocs} 篇 →
+            查看全部 {library.totalDocs} 篇
           </Link>
         </div>
 

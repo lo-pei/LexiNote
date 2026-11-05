@@ -125,9 +125,10 @@ export default async function SearchPage({
               {result.hits.length} 份文档命中
               {result.truncated ? '（仅显示前若干条）' : ''}
             </h2>
-            <span className="section__hint">
-              {result.mode === 'fts' ? '索引检索' : '短词模糊匹配'} · {result.tookMs}ms · 关键词{' '}
-              {result.terms.join('、')}
+            <span className="section__hint meta-set">
+              <span>{result.mode === 'fts' ? '索引检索' : '短词模糊匹配'}</span>
+              <span>{result.tookMs}ms</span>
+              <span>关键词 {result.terms.join('、')}</span>
             </span>
           </div>
 
@@ -157,7 +158,7 @@ export default async function SearchPage({
           </div>
           <p className="ln-hint search-hint">
             「{q}」在你有权阅读的 {health.indexed} 份文档里没有命中。
-            请检查拼写，或换一个更短的关键词——英文可以直接输入词根，例如{' '}
+            请检查拼写，或换一个更短的关键词。英文可以直接输入词根，例如{' '}
             <code>consid</code> 能匹配 consideration、considered。
           </p>
         </section>

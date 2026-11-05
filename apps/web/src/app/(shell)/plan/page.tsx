@@ -110,9 +110,12 @@ export default async function PlanPage() {
           <section className="section">
             <div className="section__head">
               <h2 className="section__title">专题与案例</h2>
-              <span className="section__hint">
-                {topics.length} 个专题 · 讲授 {lectureCount} 个 · 延伸阅读 {readingCount} 个 ·{' '}
-                {caseCount} 个案例 · 已讲完 {doneCount} 个
+              <span className="section__hint meta-set">
+                <span>{topics.length} 个专题</span>
+                <span>讲授 {lectureCount}</span>
+                <span>延伸阅读 {readingCount}</span>
+                <span>{caseCount} 个案例</span>
+                <span>已讲完 {doneCount}</span>
               </span>
             </div>
 
@@ -177,9 +180,6 @@ export default async function PlanPage() {
                           docs.map((doc) => (
                             <Link className="topic__doc" href={`/docs/${doc.id}`} key={doc.id}>
                               {doc.title}
-                              <span className="topic__doc-go" aria-hidden="true">
-                                →
-                              </span>
                             </Link>
                           ))
                         ) : (

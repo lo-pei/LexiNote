@@ -79,9 +79,9 @@ export function LawTree({ library }: { library: LawLibrary }) {
               法
             </span>
             <span className="ltree__roottext">
-              <b>中国现行法律 · 英文官方译本</b>
+              <b>中国现行法律，英文官方译本</b>
               <span>
-                {library.categories.length} 个部门法 · {library.totalDocs} 篇 ·{' '}
+                {library.categories.length} 个部门法、{library.totalDocs} 篇、{' '}
                 {library.totalWords.toLocaleString('zh-CN')} 词
               </span>
             </span>

@@ -42,7 +42,7 @@ export function ProgressBoard({ items }: { items: CourseProgress[] }) {
               role="img"
               aria-label={`学期进度：第 ${item.week} 周，共 ${item.totalWeeks} 周`}
             >
-              <span className="prog__rail-fill" style={{ width: `${weekPercent}%` }} />
+              <span className="prog__rail-fill" style={{ transform: `scaleX(${weekPercent / 100})` }} />
             </div>
             <div className="prog__scale" aria-hidden="true">
               <span>第 1 周</span>

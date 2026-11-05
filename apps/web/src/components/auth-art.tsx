@@ -137,10 +137,10 @@ export function AuthArt({ footer = 'LAW 2103 · 2026 秋季学期' }: { footer?:
           L
         </span>
         <span>
-          <span className="rail__name" style={{ color: '#f6f5ef' }}>
+          <span className="rail__name" style={{ color: 'var(--color-paper)' }}>
             LexiNote
           </span>
-          <span className="rail__sub" style={{ color: 'rgba(246,245,239,.6)' }}>
+          <span className="rail__sub" style={{ color: 'color-mix(in oklab, var(--color-paper) 60%, transparent)' }}>
             法律英语精读
           </span>
         </span>

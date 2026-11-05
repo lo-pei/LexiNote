@@ -35,15 +35,16 @@ export default async function JoinPage({ params }: { params: { token: string } }
             <span className="rail__sub">法律英语精读</span>
           </span>
         </Link>
-        <span className="eyebrow-free-label">班级邀请</span>
       </header>
 
       <main className="landing__card">
-        <span className="rail__label">你被邀请加入</span>
         <h1 className="landing__title">{invite.className}</h1>
-        <p className="landing__meta">
-          {invite.teacherName} 老师
-          {invite.term ? ` · ${invite.term}` : ''} · {invite.memberCount} 人 · {invite.courseCount} 门课
+        <p className="landing__meta meta-set">
+          <span>你被邀请加入这个教学班</span>
+          <span>{invite.teacherName} 老师</span>
+          {invite.term ? <span>{invite.term}</span> : null}
+          <span>{invite.memberCount} 人</span>
+          <span>{invite.courseCount} 门课</span>
         </p>
         {invite.note ? <p className="landing__note">{invite.note}</p> : null}
 

@@ -268,7 +268,7 @@ index.html / 入口.html  「index.html」双击即进登录页（服务未启�
 data/                     运行时数据（**不入库**）
 ```
 
-代码规模：TypeScript 21,731 行（`.ts`/`.mts` 12,683 + `.tsx` 9,048）、样式 7,141 行；29 个页面、46 个接口、27 张表（口径：`apps` + `packages` + `tooling`，不含 `node_modules`）。
+代码规模：TypeScript 21,722 行（`.ts`/`.mts` 12,688 + `.tsx` 9,034）、样式 7,649 行；29 个页面、46 个接口、27 张表（口径：`apps` + `packages` + `tooling`，不含 `node_modules`）。
 
 ---
 

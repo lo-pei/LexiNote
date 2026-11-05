@@ -18,7 +18,7 @@ function Bars({ rows, accent }: { rows: { label: string; value: number; suffix?:
           <span className="bar-track">
             <span
               className={`bar-fill${accent ? ' bar-fill--accent' : ''}`}
-              style={{ width: `${Math.round((row.value / max) * 100)}%` }}
+              style={{ transform: `scaleX(${(row.value / max).toFixed(3)})` }}
             />
           </span>
           <span className="bar-num">{row.value}</span>

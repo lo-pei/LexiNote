@@ -1,0 +1,254 @@
+/* ============================================================
+   LexiNote · Terrazzo（应用版）
+   —— 材质：纸、墨、锈。卡片是纸片，压在一道硬偏移上，用 2px 墨线围边；
+   圆角为零，投影不模糊；锈只出现在编号、当前项与焦点环。
+   中文落点：Terrazzo 的 Syne / Onest 对汉字无字形，正文字面改走系统中文栈，
+   力量由字重（700）与尺寸给出；等宽留给案号、条文号、学号、日期这些
+   需要逐位对齐的读数。
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* ── 尺度 ─────────────────────────────────────────────── */
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+  --space-3xl: 96px;
+  --space-4xl: 144px;
+
+  /* 应用密度下的字号：1.125–1.2 的比值，不做流式大标题 */
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.1875rem;
+  --text-2xl: 1.375rem;
+  --text-3xl: 1.625rem;
+  --text-display-s: 1.75rem;
+  --text-display: 2rem;
+  --text-section: 1.1875rem;
+  --text-title: 1rem;
+  --text-lead: 1.0625rem;
+
+  /* ── 动效 ─────────────────────────────────────────────── */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+
+  /* ── 层 ───────────────────────────────────────────────── */
+  --z-base: 1;
+  --z-raised: 10;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-sticky-nav: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-tooltip: 600;
+
+  /* ── 纸与墨（Terrazzo off-white）─────────────────────── */
+  --color-paper: oklch(96% 0.009 82);
+  --color-paper-2: oklch(92% 0.012 82);
+  --color-paper-3: oklch(87.5% 0.014 80);
+  --color-plate: oklch(99.5% 0.003 82);
+
+  --color-ink: oklch(16% 0.006 60);
+  --color-ink-2: oklch(27% 0.006 60);
+  --color-muted: oklch(44% 0.01 60);
+  --color-faint: oklch(62% 0.009 70);
+  --color-rule: oklch(81% 0.012 80);
+  --color-rule-soft: oklch(88% 0.011 80);
+
+  /* 锈：唯一信号色。编号、当前项、焦点环、选中行 */
+  --color-accent: oklch(53% 0.15 38);
+  --color-accent-ink: oklch(43% 0.14 36);
+  --color-accent-soft: oklch(93% 0.028 45);
+  --color-accent-line: oklch(72% 0.09 42);
+  --color-accent-paper: oklch(99.5% 0.003 82);
+  --color-focus: oklch(50% 0.16 38);
+
+  --color-error: oklch(50% 0.18 27);
+  --color-success: oklch(46% 0.09 155);
+  --color-warn: oklch(52% 0.12 70);
+
+  /* ── 字面 ─────────────────────────────────────────────── */
+  --font-display: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC",
+    system-ui, sans-serif;
+  --font-body: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC",
+    system-ui, sans-serif;
+  /* 长文阅读：宋体承担汉字，Times 承担拉丁，这是法律文本的常规读法 */
+  --font-read: "Times New Roman", "Times", "Songti SC", "STSong", "Source Han Serif SC",
+    "Noto Serif CJK SC", "SimSun", serif;
+  /* 等宽：案号、条文号、学号、日期、代码 */
+  --font-outlier: "JetBrains Mono", "SFMono-Regular", "Consolas", "Liberation Mono", ui-monospace,
+    monospace;
+
+  --display-weight: 700;
+  --tracking-display: -0.012em;
+  --radius-card: 0;
+  --radius-pill: 0;
+  --rule-hair: 1px;
+  --rule-bar: 2px;
+
+  /* ── 投射：硬偏移，不模糊 ───────────────────────────────
+     偏移色比纸沉两档才看得出厚度；用色阶而不是黑色透明度，
+     因为半透明黑叠在暖纸上会发灰发脏。 */
+  --shadow-solid: oklch(80% 0.018 78);
+  --shadow-card: 14px 14px 0 var(--shadow-solid);
+  --shadow-card-hover: 14px 14px 0 var(--color-ink);
+  --shadow-pop: 18px 18px 0 var(--shadow-solid);
+  --shadow-strip: 8px 8px 0 var(--shadow-solid);
+
+  /* ── 容器 ─────────────────────────────────────────────── */
+  --container: 1440px;
+  --gutter: 40px;
+  --gap-columns: 24px;
+  --section-gap-s: 32px;
+  --section-gap: 40px;
+  --section-gap-l: 56px;
+
+  /* ============================================================
+     旧名映射
+     —— 全站 900 个选择器引用的是这一层名字。把新值挂到旧名上，
+     组件层不必逐个改写就能换到 Terrazzo；要再改主题只动这里。
+     ============================================================ */
+  --ground: var(--color-paper);
+  --ground-2: var(--color-paper-2);
+  --ground-3: var(--color-paper-3);
+  --rail-bg: var(--color-paper-2);
+  --paper: var(--color-plate);
+  --paper-2: var(--color-paper-2);
+  --paper-hi: var(--color-plate);
+
+  --surface: var(--color-plate);
+  --surface-sunken: var(--color-paper-2);
+  --surface-raised: var(--color-plate);
+  --surface-band: var(--color-paper-2);
+
+  --ink: var(--color-ink);
+  --ink-strong: var(--color-ink);
+  --ink-2: var(--color-ink-2);
+  --ink-3: var(--color-muted);
+  --ink-4: var(--color-faint);
+
+  --accent: var(--color-accent);
+  --accent-ink: var(--color-accent-ink);
+  --accent-wash: var(--color-accent-soft);
+  --accent-wash-2: oklch(88% 0.045 44);
+  --accent-line: var(--color-accent-line);
+
+  --danger: oklch(50% 0.18 27);
+  --danger-ink: oklch(42% 0.17 27);
+  --danger-wash: oklch(94% 0.03 27);
+  --danger-wash-2: oklch(88% 0.05 27);
+
+  --rule: var(--color-rule);
+  --rule-soft: var(--color-rule-soft);
+  --rule-strong: oklch(62% 0.012 75);
+
+  --shadow-1: var(--shadow-strip);
+  --shadow-2: var(--shadow-pop);
+
+  --chart-1: var(--color-accent);
+  --chart-2: oklch(66% 0.07 45);
+  --chart-3: oklch(82% 0.03 50);
+  --chart-dim: var(--color-paper-3);
+  --chart-track: var(--color-paper-2);
+  --ok: var(--color-success);
+
+  --gut: 40px;
+  --frame: 1440px;
+  --ease: var(--ease-out);
+  --fast: var(--dur-micro) var(--ease-out);
+  --base: var(--dur-short) var(--ease-out);
+
+  /* 组件层直接取用 */
+  --font-cn: var(--font-body);
+  --font-ui: var(--font-body);
+  --font-prose: var(--font-read);
+  --font-mono: var(--font-outlier);
+}
+
+/* ============================================================
+   夜间：Terrazzo 的 Black colourway
+   —— 底压到近黑，纸片比底亮一档（不是把日间反过来），锈提亮到 68%
+   以免在深底上发闷。硬偏移在深色下改用更深的纸，才看得出厚度。
+   ============================================================ */
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-paper: oklch(14% 0.005 60);
+  --color-paper-2: oklch(18.5% 0.006 60);
+  --color-paper-3: oklch(23% 0.007 60);
+  --color-plate: oklch(20% 0.006 60);
+
+  --color-ink: oklch(95% 0.008 80);
+  --color-ink-2: oklch(84% 0.008 75);
+  --color-muted: oklch(68% 0.01 70);
+  --color-faint: oklch(52% 0.01 70);
+  --color-rule: oklch(29% 0.008 60);
+  --color-rule-soft: oklch(24% 0.007 60);
+
+  --color-accent: oklch(68% 0.14 40);
+  --color-accent-ink: oklch(78% 0.12 42);
+  --color-accent-soft: oklch(27% 0.05 45);
+  --color-accent-line: oklch(45% 0.09 42);
+  --color-accent-paper: oklch(14% 0.005 60);
+  --color-focus: oklch(72% 0.14 42);
+
+  --color-error: oklch(70% 0.15 27);
+  --color-success: oklch(70% 0.09 155);
+  --color-warn: oklch(76% 0.1 75);
+
+  --shadow-solid: oklch(9% 0.004 60);
+  --shadow-card-hover: oklch(88% 0.008 80);
+
+  --ground: var(--color-paper);
+  --ground-2: var(--color-paper-2);
+  --ground-3: var(--color-paper-3);
+  --rail-bg: var(--color-paper-2);
+  --paper: var(--color-plate);
+  --paper-2: var(--color-paper-2);
+  --paper-hi: oklch(24% 0.007 60);
+
+  --surface: var(--color-plate);
+  --surface-sunken: oklch(12% 0.005 60);
+  --surface-raised: var(--color-plate);
+  --surface-band: var(--color-paper-2);
+
+  --ink: var(--color-ink);
+  --ink-strong: oklch(99% 0.004 80);
+  --ink-2: var(--color-ink-2);
+  --ink-3: var(--color-muted);
+  --ink-4: var(--color-faint);
+
+  --accent: var(--color-accent);
+  --accent-ink: var(--color-accent-ink);
+  --accent-wash: var(--color-accent-soft);
+  --accent-wash-2: oklch(33% 0.06 45);
+  --accent-line: var(--color-accent-line);
+
+  --danger: oklch(70% 0.15 27);
+  --danger-ink: oklch(80% 0.13 27);
+  --danger-wash: oklch(26% 0.06 27);
+  --danger-wash-2: oklch(32% 0.08 27);
+
+  --rule: var(--color-rule);
+  --rule-soft: var(--color-rule-soft);
+  --rule-strong: oklch(42% 0.01 70);
+
+  --chart-1: var(--color-accent);
+  --chart-2: oklch(52% 0.08 45);
+  --chart-3: oklch(34% 0.04 50);
+  --chart-dim: oklch(26% 0.007 60);
+  --chart-track: oklch(21% 0.006 60);
+}

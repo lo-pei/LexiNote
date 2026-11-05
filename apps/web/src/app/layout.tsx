@@ -22,9 +22,10 @@ export const viewport: Viewport = {
  * 直接把 data-theme 写在 <html> 上，CSS 变量随即生效。
  */
 const THEME_BOOT = `(function(){try{
+  var r = document.documentElement;
+  r.classList.add('js');
   var m = localStorage.getItem('ln:theme') || 'system';
   var dark = m === 'dark' || (m === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  var r = document.documentElement;
   r.dataset.theme = dark ? 'dark' : 'light';
   r.dataset.mode = m;
   r.style.colorScheme = dark ? 'dark' : 'light';
